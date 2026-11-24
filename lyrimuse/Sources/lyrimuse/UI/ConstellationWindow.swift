@@ -122,7 +122,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
                 guard let self else { return }
                 let text = line?.plainText ?? line?.mainText
                 plainText = text
-                take(line?.words ?? [], key: text ?? "")
+                take(line?.words ?? [], text: text ?? "")
             }
             .store(in: &subscriptions)
         coordinator.$isPlayingSmoothed
@@ -166,10 +166,14 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
 
     /// One constellation spans several lines: words pile up until the run is full, then it clears and
     /// a new one starts. A run keeps its seed so the stars already on screen never move.
-    private func take(_ incoming: [SyncedLyricWord], key: String) {
-        guard !incoming.isEmpty, key != lastLineKey else { return }
+    private func take(_ incoming: [SyncedLyricWord], text: String) {
+        guard let first = incoming.first else { return }
+        // Identify a line by its text and its start: songs repeat lines, and a repeat is a new
+        // arrival, not the same one delivered twice.
+        let key = "\(first.startMs)|\(text)"
+        guard key != lastLineKey else { return }
         lastLineKey = key
-        let rewound = incoming[0].startMs < (words.last?.startMs ?? Int.min)
+        let rewound = first.startMs < (words.last?.startMs ?? Int.min)
         if rewound || words.count + incoming.count > runCapacity {
             startRun(with: incoming, key: key)
             return

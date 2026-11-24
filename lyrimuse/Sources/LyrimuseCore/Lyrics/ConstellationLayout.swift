@@ -12,7 +12,7 @@ public enum ConstellationLayout {
     /// How many words one constellation may hold before it is cleared and a new one starts.
     /// The length is drawn per run from this range, so runs are not all the same size; the walk
     /// lays out a whole run and shows a prefix, so a star never moves once it is placed.
-    public static let runLengthRange: ClosedRange<Int> = 11...20
+    public static let runLengthRange: ClosedRange<Int> = 16...28
 
     public static func runLength(seed: UInt64) -> Int {
         var rng = SeededRandom(seed: seed &+ 0x51ED_2701)

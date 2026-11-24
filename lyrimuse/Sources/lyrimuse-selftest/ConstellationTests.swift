@@ -64,6 +64,41 @@ private func checkConstellationBorder() {
     expectEqual(B.loopPosition(edge: 3, fraction: 1, width: 800, height: 400) < 0.001, true,
                 "constellation border: the end of the last edge meets the start of the first")
 
+    func coverage(_ levels: [Double], _ seconds: Double) -> Double {
+        let samples = 600
+        let visible = (0..<samples).filter {
+            B.intensity(at: Double($0) / Double(samples), nowSeconds: seconds, levels: levels) >= B.visibleIntensity
+        }
+        return Double(visible.count) / Double(samples)
+    }
+    let midLevels = [Double](repeating: 0.5, count: RealAudioSpectrum.bandCount)
+    let lifted = coverage(midLevels, 4)
+    expectEqual(lifted > 0.45 && lifted < 0.78, true,
+                "constellation border: the arc covers part of the ring, not all of it (\(lifted))")
+    expectEqual(coverage(loud, 4) > coverage(quiet, 4), true, "constellation border: louder reaches further round")
+
+    func arcs(_ levels: [Double], _ seconds: Double) -> Int {
+        let samples = 600
+        let on = (0..<samples).map {
+            B.intensity(at: Double($0) / Double(samples), nowSeconds: seconds, levels: levels) >= B.visibleIntensity
+        }
+        return (0..<samples).filter { on[$0] && !on[($0 + samples - 1) % samples] }.count
+    }
+    expectEqual(arcs(midLevels, 4), 1, "constellation border: the lit part is one unbroken arc, not scattered patches")
+
+    func peak(_ seconds: Double) -> Double {
+        var best = (position: 0.0, lit: -1.0)
+        for step in 0...600 {
+            let p = Double(step) / 600
+            let lit = B.intensity(at: p, nowSeconds: seconds, levels: midLevels)
+            if lit > best.lit { best = (p, lit) }
+        }
+        return best.position
+    }
+    let travelled = (peak(0) - peak(2) + 1).truncatingRemainder(dividingBy: 1)
+    expectEqual(travelled > 0 && travelled < 0.5, true,
+                "constellation border: the arc only ever travels anticlockwise (\(travelled))")
+
     let idle = B.idleLevels(nowSeconds: 9)
     expectEqual(idle.count, RealAudioSpectrum.bandCount, "constellation border: idle levels fill all five bands")
     expectEqual(idle.allSatisfy { $0 >= 0 && $0 <= 1 }, true, "constellation border: breathing levels stay within 0…1")

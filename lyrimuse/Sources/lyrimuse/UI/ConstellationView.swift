@@ -16,10 +16,6 @@ enum ConstellationStyle {
     static let dustCount = 90
     static let starWaist: CGFloat = 0.17
     static let borderFallback = Color(red: 0.98, green: 0.45, blue: 0.22)
-    /// Samples around the whole perimeter loop.
-    static let borderSamples = 120
-    /// Nested passes per edge, outermost first, faking an inward falloff.
-    static let borderLayers: [(depth: CGFloat, alpha: Double)] = [(1, 0.22), (0.62, 0.34), (0.3, 0.9)]
 }
 
 struct ConstellationView: View {
@@ -131,57 +127,95 @@ struct ConstellationView: View {
     private func drawBorder(in context: inout GraphicsContext, size: CGSize, seconds: Double) {
         guard borderEnabled, size.width > 0, size.height > 0 else { return }
         let beat: [Double] = levels.isEmpty ? ConstellationBorder.idleLevels(nowSeconds: seconds) : levels
+        let ring = borderRing(size: size)
+        guard ring.count > 1 else { return }
         let stops = borderStops()
-        for edge in 0..<4 {
-            for layer in ConstellationStyle.borderLayers {
-                drawEdgeLayer(in: &context, size: size, seconds: seconds, levels: beat,
-                              edge: edge, depth: layer.depth, alpha: layer.alpha, stops: stops)
-            }
+
+        var lit: [Double] = []
+        lit.reserveCapacity(ring.count)
+        for sample in ring {
+            lit.append(ConstellationBorder.intensity(at: sample.loop, nowSeconds: seconds, levels: beat))
+        }
+
+        // One continuous ring of quads: neighbours share an edge, so nothing double-blends and the
+        // corners cannot show a brighter patch where two bands would have overlapped.
+        for index in 0..<(ring.count - 1) {
+            let here = lit[index]
+            let next = lit[index + 1]
+            guard max(here, next) >= ConstellationBorder.visibleIntensity else { continue }
+            let reach = ConstellationBorder.maximumThickness
+            let colour = borderColour(at: ring[index].loop, stops: stops)
+            drawRingQuad(in: &context, from: ring[index], to: ring[index + 1],
+                         depthFrom: reach * CGFloat(here), depthTo: reach * CGFloat(next),
+                         inner: 0, outer: 0.62, colour: colour, alpha: 0.98 * min(1, max(here, next)))
+            drawRingQuad(in: &context, from: ring[index], to: ring[index + 1],
+                         depthFrom: reach * CGFloat(here), depthTo: reach * CGFloat(next),
+                         inner: 0.62, outer: 1, colour: colour, alpha: 0.34 * min(1, max(here, next)))
         }
     }
 
-    /// Colours taken from the cover art, laid along the edge so the glow is not one flat tint.
+    private struct RingSample {
+        let point: CGPoint
+        let inward: CGSize
+        let loop: Double
+    }
+
+    /// The window edge walked as one loop, corners included twice so the two sides meet exactly.
+    private func borderRing(size: CGSize) -> [RingSample] {
+        let corners: [CGPoint] = [
+            CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0),
+            CGPoint(x: size.width, y: size.height), CGPoint(x: 0, y: size.height),
+        ]
+        let inwards: [CGSize] = [
+            CGSize(width: 0, height: 1), CGSize(width: -1, height: 0),
+            CGSize(width: 0, height: -1), CGSize(width: 1, height: 0),
+        ]
+        var ring: [RingSample] = []
+        for edge in 0..<4 {
+            let from = corners[edge]
+            let to = corners[(edge + 1) % 4]
+            let span = max(abs(to.x - from.x), abs(to.y - from.y))
+            let steps = max(2, Int((span / 14).rounded()))
+            for step in 0...steps {
+                let fraction = Double(step) / Double(steps)
+                let point = CGPoint(x: from.x + (to.x - from.x) * CGFloat(fraction),
+                                    y: from.y + (to.y - from.y) * CGFloat(fraction))
+                let loop = ConstellationBorder.loopPosition(edge: edge, fraction: fraction,
+                                                            width: size.width, height: size.height)
+                ring.append(RingSample(point: point, inward: inwards[edge], loop: loop))
+            }
+        }
+        if let first = ring.first { ring.append(first) }
+        return ring
+    }
+
+    private func drawRingQuad(in context: inout GraphicsContext, from: RingSample, to: RingSample,
+                              depthFrom: CGFloat, depthTo: CGFloat, inner: CGFloat, outer: CGFloat,
+                              colour: Color, alpha: Double) {
+        func offset(_ sample: RingSample, _ depth: CGFloat) -> CGPoint {
+            CGPoint(x: sample.point.x + sample.inward.width * depth,
+                    y: sample.point.y + sample.inward.height * depth)
+        }
+        var path = Path()
+        path.move(to: offset(from, depthFrom * inner))
+        path.addLine(to: offset(to, depthTo * inner))
+        path.addLine(to: offset(to, depthTo * outer))
+        path.addLine(to: offset(from, depthFrom * outer))
+        path.closeSubpath()
+        context.fill(path, with: .color(colour.opacity(alpha)))
+    }
+
+    /// Colours taken from the cover art, walked around the loop so the ring is not one flat tint.
     private func borderStops() -> [Color] {
         if palette.count >= 2 { return palette }
         if let accent { return [accent, accent] }
         return [ConstellationStyle.borderFallback, ConstellationStyle.borderFallback]
     }
 
-    private func drawEdgeLayer(in context: inout GraphicsContext, size: CGSize, seconds: Double,
-                               levels: [Double], edge: Int, depth: CGFloat, alpha: Double,
-                               stops: [Color]) {
-        let steps = ConstellationStyle.borderSamples
-        var outer = Path()
-        var inner: [CGPoint] = []
-        var brightest: Double = 0
-        for step in 0...steps {
-            let fraction: Double = Double(step) / Double(steps)
-            let loop = ConstellationBorder.loopPosition(edge: edge, fraction: fraction,
-                                                        width: size.width, height: size.height)
-            let lit = ConstellationBorder.intensity(at: loop, nowSeconds: seconds, levels: levels)
-            brightest = max(brightest, lit)
-            let reach: CGFloat = ConstellationBorder.maximumThickness * CGFloat(lit) * depth
-            let edgePoint = borderPoint(edge: edge, fraction: CGFloat(fraction), depth: 0, size: size)
-            if step == 0 { outer.move(to: edgePoint) } else { outer.addLine(to: edgePoint) }
-            inner.append(borderPoint(edge: edge, fraction: CGFloat(fraction), depth: reach, size: size))
-        }
-        guard brightest > 0.01 else { return }
-        for point in inner.reversed() { outer.addLine(to: point) }
-        outer.closeSubpath()
-
-        let tinted: [Color] = stops.map { $0.opacity(alpha * ConstellationBorder.maximumAlpha) }
-        let from = borderPoint(edge: edge, fraction: 0, depth: 0, size: size)
-        let to = borderPoint(edge: edge, fraction: 1, depth: 0, size: size)
-        context.fill(outer, with: .linearGradient(Gradient(colors: tinted), startPoint: from, endPoint: to))
-    }
-
-    private func borderPoint(edge: Int, fraction: CGFloat, depth: CGFloat, size: CGSize) -> CGPoint {
-        switch edge {
-        case 0: return CGPoint(x: size.width * fraction, y: depth)
-        case 1: return CGPoint(x: size.width - depth, y: size.height * fraction)
-        case 2: return CGPoint(x: size.width * (1 - fraction), y: size.height - depth)
-        default: return CGPoint(x: depth, y: size.height * (1 - fraction))
-        }
+    private func borderColour(at loop: Double, stops: [Color]) -> Color {
+        guard stops.count > 1 else { return stops.first ?? ConstellationStyle.borderFallback }
+        let scaled = loop * Double(stops.count)
+        return stops[min(stops.count - 1, max(0, Int(scaled)))]
     }
 
     private func drawPlainFallback(in context: inout GraphicsContext, size: CGSize) {

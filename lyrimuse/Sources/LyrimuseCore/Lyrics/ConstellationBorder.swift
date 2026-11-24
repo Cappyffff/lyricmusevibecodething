@@ -8,10 +8,13 @@ import Foundation
 /// pulsing everywhere at once. Quiet passages leave a single faint patch in one corner, loud ones
 /// wrap most of the frame.
 public enum ConstellationBorder {
-    public static let maximumThickness: CGFloat = 132
-    public static let maximumAlpha: Double = 0.95
+    public static let maximumThickness: CGFloat = 34
+    public static let maximumAlpha: Double = 1
     /// Never quite nothing, so the frame keeps an edge even in silence.
-    public static let floorIntensity: Double = 0.06
+    public static let floorIntensity: Double = 0.03
+    /// Below this a stretch of the ring is not drawn at all, so the glow stays a travelling
+    /// band rather than a faint wash all the way round.
+    public static let visibleIntensity: Double = 0.07
     /// The inner edge is never a straight line: two slow ripples run along the loop. Proportional,
     /// so a dark stretch stays dark instead of growing a band of its own.
     public static let rippleDepth: Double = 0.14
@@ -32,10 +35,12 @@ public enum ConstellationBorder {
         }
     }
 
+    /// One wide arc covering roughly 60% of the perimeter, plus a narrow bright crest riding inside
+    /// it on the beat. Both negative, so the light only ever travels anticlockwise; `loopPosition`
+    /// runs clockwise.
     public static let lobes: [Lobe] = [
-        Lobe(band: 0, speed: 0.043, width: 0.30, phase: 0.00),
-        Lobe(band: 2, speed: -0.029, width: 0.18, phase: 0.41),
-        Lobe(band: 4, speed: 0.067, width: 0.11, phase: 0.77),
+        Lobe(band: 0, speed: -0.045, width: 0.19, phase: 0.00),
+        Lobe(band: 3, speed: -0.045, width: 0.05, phase: 0.06),
     ]
 
     /// Breathing levels for when no real audio is available, so the glow still drifts.
