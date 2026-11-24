@@ -1597,7 +1597,13 @@ func runNotchTests() {
             }
             let margin = number(#"static let windowMargin: CGFloat = ([0-9.]+)"#).first ?? 0
             let shadowTuples = number(#"\(([0-9.]+), [0-9.]+, ([0-9.]+)\)"#)
-            let reach = stride(from: 0, to: shadowTuples.count - 1, by: 2).map { 3 * shadowTuples[$0] + shadowTuples[$0 + 1] }.max() ?? .infinity
+            var reaches: [Double] = []
+            for index in stride(from: 0, to: shadowTuples.count - 1, by: 2) {
+                let blur: Double = shadowTuples[index]
+                let drop: Double = shadowTuples[index + 1]
+                reaches.append(3 * blur + drop)
+            }
+            let reach: Double = reaches.max() ?? .infinity
             expectEqual(shadowTuples.count >= 4 && margin >= reach, true, "展开边缘: 窗口余量 \(margin) 装得下投影的外沿 \(reach)")
             expectEqual(sourceHas(reveal, "static let strokeFade: ClosedRange<CGFloat> = 3...28")
                         && sourceHas(reveal, "static let shadowFade: ClosedRange<CGFloat> = 14...42")
