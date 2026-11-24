@@ -232,6 +232,15 @@ public struct ConstellationReveal: Equatable, Sendable {
     /// Words light this far ahead of their timestamp. Landing exactly on it reads as late, because
     /// a karaoke fill has already been moving through the word by the time it would appear.
     public static let leadMs = 110
+    /// A gap this long with nothing sung clears the sky: an instrumental break should not leave the
+    /// last constellation hanging there.
+    public static let silenceMs = 5000
+
+    /// Whether the run has been sitting with nothing new for longer than `silenceMs`.
+    public static func isStale(nowMs: Int, words: [SyncedLyricWord]) -> Bool {
+        guard let last = words.last else { return false }
+        return nowMs - (last.startMs + max(0, last.durationMs)) > silenceMs
+    }
 
     public let revealedCount: Int
     public let activeIndex: Int?

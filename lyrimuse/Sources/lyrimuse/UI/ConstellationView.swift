@@ -93,6 +93,7 @@ struct ConstellationView: View {
         let weights = emphasis.count == words.count ? emphasis : Self.emphasisWeights(lineKey: lineKey, words: words)
 
         let lit = nowMs + ConstellationReveal.leadMs
+        guard !ConstellationReveal.isStale(nowMs: lit, words: words) else { return }
         let reveal = ConstellationReveal.at(nowMs: lit, words: words)
         guard let active = reveal.activeIndex else { return }
 

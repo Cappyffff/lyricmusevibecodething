@@ -173,7 +173,8 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
         guard key != lastLineKey else { return }
         lastLineKey = key
         let rewound = first.startMs < (words.last?.startMs ?? Int.min)
-        if rewound || words.count + incoming.count > runCapacity {
+        let silent = ConstellationReveal.isStale(nowMs: first.startMs, words: words)
+        if rewound || silent || words.count + incoming.count > runCapacity {
             startRun(with: incoming, key: key)
             return
         }

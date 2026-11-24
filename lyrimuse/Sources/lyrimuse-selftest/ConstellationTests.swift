@@ -260,6 +260,15 @@ private func checkConstellationReveal() {
     expectEqual(reveal(9999).revealedCount, 3, "constellation reveal: after the line all three stars remain")
     expectEqual(ConstellationReveal.at(nowMs: 500, words: []).activeIndex, nil, "constellation reveal: no word timings means no active word")
 
+    typealias Stale = ConstellationReveal
+    let lastEnd = words[2].startMs + words[2].durationMs
+    expectEqual(Stale.isStale(nowMs: lastEnd + Stale.silenceMs - 1, words: words), false,
+                "constellation silence: a short gap keeps the sky")
+    expectEqual(Stale.isStale(nowMs: lastEnd + Stale.silenceMs + 1, words: words), true,
+                "constellation silence: past five seconds with nothing sung it clears")
+    expectEqual(Stale.isStale(nowMs: 9_999_999, words: []), false,
+                "constellation silence: an empty sky is not stale")
+
     typealias Reveal = ConstellationReveal
     expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1000, words: words), 0, "constellation edge: at the previous word's start the line has not begun")
     expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1200, words: words), 0.5, "constellation edge: halfway between timestamps the line is half drawn")
