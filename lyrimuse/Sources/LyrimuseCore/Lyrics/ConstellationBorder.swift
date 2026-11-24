@@ -8,7 +8,12 @@ import Foundation
 /// pulsing everywhere at once. Quiet passages leave a single faint patch in one corner, loud ones
 /// wrap most of the frame.
 public enum ConstellationBorder {
-    public static let maximumThickness: CGFloat = 34
+    public static let maximumThickness: CGFloat = 46
+    /// The ring sits this far in from the window edge. Hard against it the glow disappears into a
+    /// display's rounded corners and bezel.
+    public static let edgeInset: CGFloat = 10
+    /// Arc length between ring samples. Fewer, longer pieces keep the fill count down.
+    public static let sampleSpacing: CGFloat = 34
     public static let maximumAlpha: Double = 1
     /// Never quite nothing, so the frame keeps an edge even in silence.
     public static let floorIntensity: Double = 0.03

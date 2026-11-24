@@ -3,7 +3,14 @@ import Foundation
 
 public enum ConstellationLayout {
     public static let stepRange: ClosedRange<CGFloat> = 80...120
-    public static let turnRange: ClosedRange<CGFloat> = 30...75
+    /// The envelope every turn falls inside.
+    public static let turnRange: ClosedRange<CGFloat> = 6...135
+    /// Turns are drawn from three bands rather than one. A single band plus strictly alternating
+    /// direction walks a rough circle; mixing long near-straight runs with sharp elbows gives the
+    /// sprawling, self-crossing shapes a constellation should have.
+    public static let gentleTurn: ClosedRange<CGFloat> = 6...20
+    public static let sweepTurn: ClosedRange<CGFloat> = 30...75
+    public static let elbowTurn: ClosedRange<CGFloat> = 85...135
     public static let minSeparation: CGFloat = 64
     public static let defaultMargin: CGFloat = 96
     /// How far spacing may grow past `stepRange` so a run fills a big canvas instead of
@@ -107,8 +114,19 @@ public enum ConstellationLayout {
             var accepted: (point: CGPoint, heading: CGFloat)?
 
             for attempt in 0..<12 {
-                let turn = CGFloat(rng.double(Double(turnRange.lowerBound), Double(turnRange.upperBound)))
-                let sign = attempt.isMultiple(of: 2) ? turnSign : -turnSign
+                let roll: Double = rng.unit()
+                let band: ClosedRange<CGFloat>
+                if roll < 0.18 {
+                    band = gentleTurn
+                } else if roll < 0.75 {
+                    band = sweepTurn
+                } else {
+                    band = elbowTurn
+                }
+                let turn = CGFloat(rng.double(Double(band.lowerBound), Double(band.upperBound)))
+                let swap: Bool = rng.unit() < 0.38
+                let base: CGFloat = swap ? -turnSign : turnSign
+                let sign = attempt.isMultiple(of: 2) ? base : -base
                 let candidateHeading: CGFloat = heading + sign * turn * .pi / 180
                 let step: CGFloat = CGFloat(rng.double(Double(shortest), Double(longest)))
                 let dx: CGFloat = cos(candidateHeading) * step
@@ -234,7 +252,7 @@ public struct ConstellationReveal: Equatable, Sendable {
     public static let leadMs = 110
     /// A gap this long with nothing sung clears the sky: an instrumental break should not leave the
     /// last constellation hanging there.
-    public static let silenceMs = 5000
+    public static let silenceMs = 3000
 
     /// Whether the run has been sitting with nothing new for longer than `silenceMs`.
     public static func isStale(nowMs: Int, words: [SyncedLyricWord]) -> Bool {

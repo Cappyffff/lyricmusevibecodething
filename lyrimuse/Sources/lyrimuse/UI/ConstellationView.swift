@@ -148,10 +148,10 @@ struct ConstellationView: View {
             let colour = borderColour(at: ring[index].loop, stops: stops)
             drawRingQuad(in: &context, from: ring[index], to: ring[index + 1],
                          depthFrom: reach * CGFloat(here), depthTo: reach * CGFloat(next),
-                         inner: 0, outer: 0.62, colour: colour, alpha: 0.98 * min(1, max(here, next)))
+                         inner: 0, outer: 0.66, colour: colour, alpha: 0.9)
             drawRingQuad(in: &context, from: ring[index], to: ring[index + 1],
                          depthFrom: reach * CGFloat(here), depthTo: reach * CGFloat(next),
-                         inner: 0.62, outer: 1, colour: colour, alpha: 0.34 * min(1, max(here, next)))
+                         inner: 0.66, outer: 1, colour: colour, alpha: 0.42)
         }
     }
 
@@ -163,9 +163,12 @@ struct ConstellationView: View {
 
     /// The window edge walked as one loop, corners included twice so the two sides meet exactly.
     private func borderRing(size: CGSize) -> [RingSample] {
+        let inset = ConstellationBorder.edgeInset
+        let right = size.width - inset
+        let bottom = size.height - inset
         let corners: [CGPoint] = [
-            CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0),
-            CGPoint(x: size.width, y: size.height), CGPoint(x: 0, y: size.height),
+            CGPoint(x: inset, y: inset), CGPoint(x: right, y: inset),
+            CGPoint(x: right, y: bottom), CGPoint(x: inset, y: bottom),
         ]
         let inwards: [CGSize] = [
             CGSize(width: 0, height: 1), CGSize(width: -1, height: 0),
@@ -176,7 +179,7 @@ struct ConstellationView: View {
             let from = corners[edge]
             let to = corners[(edge + 1) % 4]
             let span = max(abs(to.x - from.x), abs(to.y - from.y))
-            let steps = max(2, Int((span / 14).rounded()))
+            let steps = max(2, Int((span / ConstellationBorder.sampleSpacing).rounded()))
             for step in 0...steps {
                 let fraction = Double(step) / Double(steps)
                 let point = CGPoint(x: from.x + (to.x - from.x) * CGFloat(fraction),
@@ -282,7 +285,9 @@ struct ConstellationView: View {
             context.stroke(Path(ellipseIn: box), with: .color(.white.opacity(haloAlpha)), lineWidth: 1)
         }
 
-        let starInk: Color = index == active ? (accent ?? .white) : .white
+        // The accent can be very dark on some sleeves, which left the active star almost invisible.
+        // Lift it most of the way to white so it always reads as the brightest thing on screen.
+        let starInk: Color = index == active ? lifted(accent) : .white
         context.fill(starPath(center: point, radius: starRadius),
                      with: .color(starInk.opacity(starAlpha)))
 
@@ -318,6 +323,15 @@ struct ConstellationView: View {
         path.addQuadCurve(to: top, control: topLeft)
         path.closeSubpath()
         return path
+    }
+
+    private func lifted(_ colour: Color?) -> Color {
+        guard let colour, let parts = NSColor(colour).usingColorSpace(.sRGB) else { return .white }
+        let pull = 0.55
+        let red = Double(parts.redComponent) + (1 - Double(parts.redComponent)) * pull
+        let green = Double(parts.greenComponent) + (1 - Double(parts.greenComponent)) * pull
+        let blue = Double(parts.blueComponent) + (1 - Double(parts.blueComponent)) * pull
+        return Color(red: red, green: green, blue: blue)
     }
 
     private func mix(_ from: CGFloat, _ to: CGFloat, _ amount: Double) -> CGFloat {

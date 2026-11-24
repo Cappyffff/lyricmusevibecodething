@@ -165,7 +165,8 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
 
     /// One constellation spans several lines: words pile up until the run is full, then it clears and
     /// a new one starts. A run keeps its seed so the stars already on screen never move.
-    private func take(_ incoming: [SyncedLyricWord], text: String) {
+    private func take(_ raw: [SyncedLyricWord], text: String) {
+        let incoming = Self.split(raw)
         guard let first = incoming.first else { return }
         // Identify a line by its text and its start: songs repeat lines, and a repeat is a new
         // arrival, not the same one delivered twice.
@@ -180,6 +181,25 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
         }
         if words.isEmpty { startRun(with: incoming, key: key); return }
         words += incoming
+    }
+
+    /// Some lyric sources hand back a whole line as one timed word. Left alone that lands as a
+    /// single star carrying the entire phrase, so it is cut into words and the line's span shared
+    /// out by word length.
+    private static func split(_ words: [SyncedLyricWord]) -> [SyncedLyricWord] {
+        guard words.count == 1, let only = words.first else { return words }
+        let parts = only.text.split(separator: " ").map(String.init)
+        guard parts.count > 1 else { return words }
+        let letters = parts.reduce(0) { $0 + max(1, $1.count) }
+        var out: [SyncedLyricWord] = []
+        var offset = 0
+        for part in parts {
+            let weight = Double(max(1, part.count)) / Double(letters)
+            let share = Int((weight * Double(max(1, only.durationMs))).rounded())
+            out.append(SyncedLyricWord(text: part, startMs: only.startMs + offset, durationMs: max(1, share)))
+            offset += share
+        }
+        return out
     }
 
     private func startRun(with incoming: [SyncedLyricWord], key: String) {
