@@ -123,7 +123,7 @@ private func checkConstellationLayout() {
             let label = "\(Int(size.width))x\(Int(size.height)) \(count) words"
             if points.contains(where: { !inner.contains($0) }) { outside.append(label) }
             guard count > 1 else { continue }
-            let wanted: CGFloat = L.separation(count: count, canvas: canvas)
+            let wanted: CGFloat = L.separation(count: count, seed: seed, canvas: canvas)
             let closest: CGFloat = minimumDistance(points)
             let lowest: CGFloat = wanted * 0.75 * 0.75 * 0.75
             if closest < lowest { belowFloor.append("\(label): closest \(Int(closest))") }
@@ -147,16 +147,27 @@ private func checkConstellationLayout() {
     let paced: Bool = steps.allSatisfy { $0 >= shortest && $0 <= longest }
     expectEqual(paced, true, "constellation layout: a roomy canvas stretches the stride so the run fills it")
 
-    expectEqual(L.separation(count: 25, canvas: L.Canvas(size: CGSize(width: 600, height: 360))) < L.minSeparation, true,
+    expectEqual(L.separation(count: 25, seed: seed, canvas: L.Canvas(size: CGSize(width: 600, height: 360))) < L.minSeparation, true,
                 "constellation layout: too many words for the area narrows the minimum separation")
-    expectEqual(L.separation(count: 6, canvas: canvas), L.minSeparation * L.spreadCeiling,
+    expectEqual(L.separation(count: 6, seed: seed, canvas: canvas), L.minSeparation * L.spreadCeiling,
                 "constellation layout: a roomy canvas widens the separation to its ceiling")
 
     let five = L.points(count: 5, seed: seed, canvas: canvas)
     let twelve = L.points(count: 12, seed: seed, canvas: canvas)
-    let whole = L.points(count: L.runCapacity, seed: seed, canvas: canvas)
+    let whole = L.points(count: L.runLength(seed: seed), seed: seed, canvas: canvas)
     expectEqual(Array(twelve.prefix(5)), five, "constellation layout: a star never moves once the next word lands")
     expectEqual(Array(whole.prefix(12)), twelve, "constellation layout: the whole run is laid out up front")
+
+    var lengths: Set<Int> = []
+    for phrase in ["the road runs", "i never knew", "somebody like you", "too close to the stars",
+                   "call me up when", "out of the blue", "under a quiet sky", "and it fades"] {
+        lengths.insert(L.runLength(seed: L.seed(for: phrase)))
+    }
+    expectEqual(lengths.count > 1, true, "constellation layout: runs are not all the same length")
+    expectEqual(lengths.allSatisfy { L.runLengthRange.contains($0) }, true,
+                "constellation layout: every run length sits in the allowed range")
+    expectEqual(L.runLength(seed: 99) == L.runLength(seed: 99), true,
+                "constellation layout: a run keeps its length while it is on screen")
 
     let phraseSeed = L.seed(for: phrase)
     let longWord: CGFloat = L.emphasis(durationMs: 900, index: 3, seed: phraseSeed)

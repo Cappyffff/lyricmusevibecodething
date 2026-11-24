@@ -9,9 +9,16 @@ public enum ConstellationLayout {
     /// How far spacing may grow past `stepRange` so a run fills a big canvas instead of
     /// huddling in the middle. The walk still shrinks below 1 when a run is crowded.
     public static let spreadCeiling: CGFloat = 2.5
-    /// How many words one constellation holds before it is cleared and a new one starts.
-    /// The walk always lays out this many and shows a prefix, so a star never moves once placed.
-    public static let runCapacity = 18
+    /// How many words one constellation may hold before it is cleared and a new one starts.
+    /// The length is drawn per run from this range, so runs are not all the same size; the walk
+    /// lays out a whole run and shows a prefix, so a star never moves once it is placed.
+    public static let runLengthRange: ClosedRange<Int> = 11...20
+
+    public static func runLength(seed: UInt64) -> Int {
+        var rng = SeededRandom(seed: seed &+ 0x51ED_2701)
+        let span = runLengthRange.upperBound - runLengthRange.lowerBound
+        return runLengthRange.lowerBound + Int(rng.double(0, Double(span) + 0.999))
+    }
 
     public struct Canvas: Equatable, Sendable {
         public var size: CGSize
@@ -41,16 +48,16 @@ public enum ConstellationLayout {
         return hash == 0 ? 0x9E37_79B9_7F4A_7C15 : hash
     }
 
-    public static func separation(count: Int, canvas: Canvas) -> CGFloat {
+    public static func separation(count: Int, seed: UInt64, canvas: Canvas) -> CGFloat {
         let inner = canvas.inner
         guard count > 1, inner.width > 0, inner.height > 0 else { return 0 }
-        return min(minSeparation * densityScale(count: capacity(for: count), inner: inner),
+        return min(minSeparation * densityScale(count: capacity(count: count, seed: seed), inner: inner),
                    min(inner.width, inner.height) / 2)
     }
 
     /// Spacing is chosen for a whole run, not for however many words have landed so far, so adding
     /// the next word cannot shift the ones already on screen.
-    public static func capacity(for count: Int) -> Int { max(count, runCapacity) }
+    public static func capacity(count: Int, seed: UInt64) -> Int { max(count, runLength(seed: seed)) }
 
     public static func points(count: Int, seed: UInt64, canvas: Canvas) -> [CGPoint] {
         guard count > 0 else { return [] }
@@ -58,7 +65,7 @@ public enum ConstellationLayout {
         guard inner.width > 0, inner.height > 0 else {
             return Array(repeating: CGPoint(x: canvas.size.width / 2, y: canvas.size.height / 2), count: count)
         }
-        let full = capacity(for: count)
+        let full = capacity(count: count, seed: seed)
         var attemptScale = densityScale(count: full, inner: inner)
         var best: (points: [CGPoint], spread: CGFloat)?
         for attempt in 0..<4 {

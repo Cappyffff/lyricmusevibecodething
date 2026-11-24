@@ -112,6 +112,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     private var listening = false
     private var windowOpen = false
     private var lastLineKey: String?
+    private var runCapacity = ConstellationLayout.runLengthRange.upperBound
 
     init(live: Bool = true) {
         guard live else { return }
@@ -169,13 +170,18 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
         guard !incoming.isEmpty, key != lastLineKey else { return }
         lastLineKey = key
         let rewound = incoming[0].startMs < (words.last?.startMs ?? Int.min)
-        if rewound || words.count + incoming.count > ConstellationLayout.runCapacity {
-            words = incoming
-            lineKey = key
+        if rewound || words.count + incoming.count > runCapacity {
+            startRun(with: incoming, key: key)
             return
         }
-        if words.isEmpty { lineKey = key }
+        if words.isEmpty { startRun(with: incoming, key: key); return }
         words += incoming
+    }
+
+    private func startRun(with incoming: [SyncedLyricWord], key: String) {
+        words = incoming
+        lineKey = key
+        runCapacity = ConstellationLayout.runLength(seed: ConstellationLayout.seed(for: key))
     }
 
     /// Audio is read only while the window is open and the border is on; the settings preview never reads it.
