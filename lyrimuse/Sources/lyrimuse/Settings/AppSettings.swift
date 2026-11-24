@@ -1745,7 +1745,7 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(notchOverlayEnabled, forKey: Keys.notchOverlayEnabled) }
     }
 
-    /// 星座窗口的动态边框:跟着音乐起伏、颜色取自封面主色。
+    /// The constellation window border: swells with the music, tinted from the cover accent.
     @Published var constellationBorder: Bool {
         didSet { defaults.set(constellationBorder, forKey: Keys.constellationBorder) }
     }

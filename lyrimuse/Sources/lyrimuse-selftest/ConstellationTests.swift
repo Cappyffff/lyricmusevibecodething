@@ -10,15 +10,15 @@ func runConstellationTests() {
 }
 
 private func checkConstellationBorder() {
-    print("\n== 星座:边框跟着音乐 ==")
+    print("\n== constellation: music-driven border ==")
     typealias B = ConstellationBorder
 
     let loud: [Double] = [1, 1, 1, 1, 1]
     let quiet: [Double] = [0, 0, 0, 0, 0]
     expectEqual(B.profile(samples: 8, nowSeconds: 3.3, levels: quiet).allSatisfy { $0 == B.baseThickness }, true,
-                "星座边框: 一点声音都没有时是一条等宽的边")
-    expectEqual(B.profile(samples: 12, nowSeconds: 0, levels: []).count, 13, "星座边框: 采样点比段数多一个")
-    expectEqual(B.profile(samples: 0, nowSeconds: 0, levels: loud), [], "星座边框: 不采样就没有点")
+                "constellation border: silence gives an even-width edge")
+    expectEqual(B.profile(samples: 12, nowSeconds: 0, levels: []).count, 13, "constellation border: one more sample than segments")
+    expectEqual(B.profile(samples: 0, nowSeconds: 0, levels: loud), [], "constellation border: no samples, no points")
 
     var outOfRange: [String] = []
     let messy: [[Double]] = [[], [0.5], loud, quiet, [-4, 9, .nan, .infinity, 0.3], [0.2, 0.9, 0.1]]
@@ -29,16 +29,16 @@ private func checkConstellationBorder() {
                 let u: Double = Double(step) / 24
                 let value = B.thickness(at: u, nowSeconds: seconds, levels: levels)
                 if !(value >= B.minimumThickness && value <= B.maximumThickness) {
-                    outOfRange.append("\(levels.count) 段 t=\(seconds) u=\(u):\(value)")
+                    outOfRange.append("\(levels.count) bands t=\(seconds) u=\(u): \(value)")
                 }
             }
         }
     }
-    expectEqual(outOfRange.first, nil, "星座边框: 再离谱的电平也夹在最薄与最厚之间")
+    expectEqual(outOfRange.first, nil, "constellation border: even absurd levels stay between the thinnest and thickest")
 
     expectEqual(B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
                 B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
-                "星座边框: 同一刻同一处算出来一样厚")
+                "constellation border: same moment and position measures the same")
 
     func meanThickness(_ energy: Double) -> CGFloat {
         let levels = [Double](repeating: energy, count: RealAudioSpectrum.bandCount)
@@ -46,17 +46,17 @@ private func checkConstellationBorder() {
         return profile.reduce(0, +) / CGFloat(profile.count)
     }
     let steps: [CGFloat] = [0, 0.25, 0.5, 0.75, 1].map(meanThickness)
-    expectEqual(zip(steps, steps.dropFirst()).allSatisfy { $0 < $1 }, true, "星座边框: 越响整条边越厚")
+    expectEqual(zip(steps, steps.dropFirst()).allSatisfy { $0 < $1 }, true, "constellation border: louder thickens the whole edge")
 
     let still = B.profile(samples: 48, nowSeconds: 4, levels: loud)
     let later = B.profile(samples: 48, nowSeconds: 4.5, levels: loud)
-    expectEqual(still == later, false, "星座边框: 波形随时间走,不是钉死的")
+    expectEqual(still == later, false, "constellation border: the wave travels with time rather than sitting still")
 
     let idle = B.idleLevels(nowSeconds: 9)
-    expectEqual(idle.count, RealAudioSpectrum.bandCount, "星座边框: 没有真实电平时也给满五段")
-    expectEqual(idle.allSatisfy { $0 >= 0 && $0 <= 1 }, true, "星座边框: 呼吸的电平也在 0…1 之内")
+    expectEqual(idle.count, RealAudioSpectrum.bandCount, "constellation border: idle levels still fill all five bands")
+    expectEqual(idle.allSatisfy { $0 >= 0 && $0 <= 1 }, true, "constellation border: breathing levels stay within 0…1")
     expectEqual(B.idleLevels(nowSeconds: 9) == B.idleLevels(nowSeconds: 14), false,
-                "星座边框: 没有音频时边框照样在动")
+                "constellation border: the border still moves without audio")
 }
 
 private func minimumDistance(_ points: [CGPoint]) -> CGFloat {
@@ -71,21 +71,21 @@ private func minimumDistance(_ points: [CGPoint]) -> CGFloat {
 }
 
 private func checkConstellationLayout() {
-    print("\n== 星座:节点布点 ==")
+    print("\n== constellation: node layout ==")
     typealias L = ConstellationLayout
     let phrase = "i never knew somebody like you were too close to the stars"
     let seed = L.seed(for: phrase)
 
     expectEqual(L.points(count: 0, seed: seed, canvas: L.Canvas(size: CGSize(width: 1000, height: 620))), [],
-                "星座布点: 没有词就没有星")
+                "constellation layout: no words, no stars")
 
     let canvas = L.Canvas(size: CGSize(width: 1512, height: 945))
     let once = L.points(count: 12, seed: seed, canvas: canvas)
     let twice = L.points(count: 12, seed: seed, canvas: canvas)
-    expectEqual(once, twice, "星座布点: 同一句同一块画布,两次摆出来逐点一致")
-    expectEqual(once.count, 12, "星座布点: 每个词各有一颗星")
+    expectEqual(once, twice, "constellation layout: same line and canvas lays out identically twice")
+    expectEqual(once.count, 12, "constellation layout: one star per word")
     expectEqual(L.points(count: 12, seed: L.seed(for: "the road runs now"), canvas: canvas) == once, false,
-                "星座布点: 换一句就是另一个形状")
+                "constellation layout: a different line gives a different shape")
 
     let sizes = [CGSize(width: 1000, height: 620), CGSize(width: 1512, height: 945),
                  CGSize(width: 3456, height: 2160), CGSize(width: 600, height: 360)]
@@ -98,22 +98,22 @@ private func checkConstellationLayout() {
         let inner = canvas.inner
         for count in [1, 2, 3, 5, 8, 14, 20, 25] {
             let points = L.points(count: count, seed: seed, canvas: canvas)
-            let label = "\(Int(size.width))x\(Int(size.height)) \(count) 词"
+            let label = "\(Int(size.width))x\(Int(size.height)) \(count) words"
             if points.contains(where: { !inner.contains($0) }) { outside.append(label) }
             guard count > 1 else { continue }
             let wanted: CGFloat = L.separation(count: count, canvas: canvas)
             let closest: CGFloat = minimumDistance(points)
             let lowest: CGFloat = wanted * 0.75 * 0.75 * 0.75
-            if closest < lowest { belowFloor.append("\(label):最近 \(Int(closest))") }
+            if closest < lowest { belowFloor.append("\(label): closest \(Int(closest))") }
             let strict: CGFloat = wanted * 0.999
             if roomy.contains(size), closest < strict {
-                crowded.append("\(label):最近 \(Int(closest)) < \(Int(wanted))")
+                crowded.append("\(label): closest \(Int(closest)) < \(Int(wanted))")
             }
         }
     }
-    expectEqual(outside, [], "星座布点: 每颗星都夹在留白之内,不会掉出画布")
-    expectEqual(crowded, [], "星座布点: 画布够大时任意两颗星都不比最小间距更近")
-    expectEqual(belowFloor, [], "星座布点: 画布摆不开时也不低于最小间距的 0.75³")
+    expectEqual(outside, [], "constellation layout: every star stays inside the margin, never off canvas")
+    expectEqual(crowded, [], "constellation layout: on a roomy canvas no two stars are closer than the minimum separation")
+    expectEqual(belowFloor, [], "constellation layout: even on a cramped canvas it stays above 0.75^3 of the minimum separation")
 
     let walked = L.points(count: 8, seed: seed, canvas: canvas)
     var steps: [CGFloat] = []
@@ -123,26 +123,26 @@ private func checkConstellationLayout() {
     let shortest: CGFloat = L.stepRange.lowerBound - 0.5
     let longest: CGFloat = L.stepRange.upperBound + 0.5
     let paced: Bool = steps.allSatisfy { $0 >= shortest && $0 <= longest }
-    expectEqual(paced, true, "星座布点: 画布放得下时,相邻两颗星的间距落在 80–120pt")
+    expectEqual(paced, true, "constellation layout: with room to spare, neighbouring stars sit 80-120pt apart")
 
     expectEqual(L.separation(count: 25, canvas: L.Canvas(size: CGSize(width: 600, height: 360))) < L.minSeparation, true,
-                "星座布点: 词多到摆不下时,最小间距按面积收窄")
+                "constellation layout: too many words for the area narrows the minimum separation")
     expectEqual(L.separation(count: 6, canvas: canvas), L.minSeparation,
-                "星座布点: 画布放得下时,最小间距就是 64pt")
+                "constellation layout: with room to spare the minimum separation is 64pt")
 
     let phraseSeed = L.seed(for: phrase)
     let longWord: CGFloat = L.emphasis(durationMs: 900, index: 3, seed: phraseSeed)
     let shortWord: CGFloat = L.emphasis(durationMs: 300, index: 3, seed: phraseSeed)
-    expectEqual(longWord > shortWord, true, "星座字号: 同一个位置上,唱得久的词更大")
+    expectEqual(longWord > shortWord, true, "constellation size: at the same index, a longer-held word is larger")
     let held: CGFloat = L.emphasis(durationMs: 1400, index: 0, seed: phraseSeed)
     let reference: CGFloat = L.emphasis(durationMs: 420, index: 0, seed: phraseSeed)
-    expectEqual(held > reference, true, "星座字号: 长音比参考时长的词更大")
+    expectEqual(held > reference, true, "constellation size: a held note beats the reference duration")
     expectEqual(L.emphasis(durationMs: 600, index: 2, seed: phraseSeed),
                 L.emphasis(durationMs: 600, index: 2, seed: phraseSeed),
-                "星座字号: 同一个词每次算出来一样大")
+                "constellation size: the same word measures the same every time")
     var weights: [CGFloat] = []
     for index in 0..<24 { weights.append(L.emphasis(durationMs: 400, index: index, seed: phraseSeed)) }
-    expectEqual(Set(weights).count > 1, true, "星座字号: 时长一样的词之间也有抖动,不会一排整齐划一")
+    expectEqual(Set(weights).count > 1, true, "constellation size: equal-duration words still vary, never a uniform row")
     let bound: CGFloat = L.emphasisRange.upperBound * (1 + L.emphasisJitter)
     let floor: CGFloat = L.emphasisRange.lowerBound * (1 - L.emphasisJitter)
     var extremes: [CGFloat] = []
@@ -153,24 +153,24 @@ private func checkConstellationLayout() {
         }
     }
     let withinBounds: Bool = extremes.allSatisfy { $0 >= floor && $0 <= bound }
-    expectEqual(withinBounds, true, "星座字号: 再短再长的词也夹在倍率上下限之内")
-    expectEqual(weights.allSatisfy { $0 > 0 }, true, "星座字号: 倍率恒为正")
+    expectEqual(withinBounds, true, "constellation size: the shortest and longest words stay within the multiplier bounds")
+    expectEqual(weights.allSatisfy { $0 > 0 }, true, "constellation size: the multiplier is always positive")
 
     let dustSize = CGSize(width: 800, height: 600)
     let dustSeed: UInt64 = L.seed(for: "dust")
     let grains = L.dust(count: 40, seed: dustSeed, size: dustSize)
-    expectEqual(grains.count, 40, "星座背景: 背景星尘按要的颗数生成")
+    expectEqual(grains.count, 40, "constellation backdrop: dust comes out at the requested count")
     expectEqual(grains == L.dust(count: 40, seed: dustSeed, size: dustSize), true,
-                "星座背景: 背景星尘每次都落在同一处")
+                "constellation backdrop: dust lands in the same places every time")
     let inCanvas: Bool = grains.allSatisfy { grain in
         grain.point.x >= 0 && grain.point.x <= dustSize.width
             && grain.point.y >= 0 && grain.point.y <= dustSize.height
     }
-    expectEqual(inCanvas, true, "星座背景: 背景星尘不出画布")
+    expectEqual(inCanvas, true, "constellation backdrop: dust stays on canvas")
 }
 
 private func checkConstellationReveal() {
-    print("\n== 星座:逐词点亮 ==")
+    print("\n== constellation: word reveal ==")
     let words = [
         SyncedLyricWord(text: "the", startMs: 1000, durationMs: 400),
         SyncedLyricWord(text: "road", startMs: 1400, durationMs: 600),
@@ -178,45 +178,45 @@ private func checkConstellationReveal() {
     ]
     func reveal(_ nowMs: Int) -> ConstellationReveal { ConstellationReveal.at(nowMs: nowMs, words: words) }
 
-    expectEqual(reveal(0).revealedCount, 0, "星座点亮: 第一个词还没到,一颗星都不画")
-    expectEqual(reveal(0).activeIndex, nil, "星座点亮: 第一个词还没到,没有当前词")
-    expectEqual(reveal(1000).revealedCount, 1, "星座点亮: 到了起始时间那一刻就点亮")
-    expectEqual(reveal(1399).activeIndex, 0, "星座点亮: 下一个词没开口前,当前词不变")
-    expectEqual(reveal(1400).activeIndex, 1, "星座点亮: 下一个词开口,当前词跟着换")
-    expectEqual(reveal(9999).revealedCount, 3, "星座点亮: 唱完整句三颗星都在")
-    expectEqual(ConstellationReveal.at(nowMs: 500, words: []).activeIndex, nil, "星座点亮: 没有逐字数据时没有当前词")
+    expectEqual(reveal(0).revealedCount, 0, "constellation reveal: before the first word, nothing is drawn")
+    expectEqual(reveal(0).activeIndex, nil, "constellation reveal: before the first word there is no active word")
+    expectEqual(reveal(1000).revealedCount, 1, "constellation reveal: a word lights the instant its start is reached")
+    expectEqual(reveal(1399).activeIndex, 0, "constellation reveal: the active word holds until the next one starts")
+    expectEqual(reveal(1400).activeIndex, 1, "constellation reveal: the next word starting moves the active word")
+    expectEqual(reveal(9999).revealedCount, 3, "constellation reveal: after the line all three stars remain")
+    expectEqual(ConstellationReveal.at(nowMs: 500, words: []).activeIndex, nil, "constellation reveal: no word timings means no active word")
 
     typealias Reveal = ConstellationReveal
-    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1000, words: words), 0, "星座连线: 上一个词刚开口,线还没画")
-    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1200, words: words), 0.5, "星座连线: 两个时间戳的正中间,线画一半")
-    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1400, words: words), 1, "星座连线: 下一个词开口那一刻,线正好连上")
-    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 5000, words: words), 1, "星座连线: 过去的线一直连着")
-    expectEqual(Reveal.edgeProgress(index: 2, nowMs: 5000, words: words), 0, "星座连线: 最后一个词后面没有线")
-    expectEqual(Reveal.edgeProgress(index: -1, nowMs: 5000, words: words), 0, "星座连线: 越界的下标不画线")
+    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1000, words: words), 0, "constellation edge: at the previous word's start the line has not begun")
+    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1200, words: words), 0.5, "constellation edge: halfway between timestamps the line is half drawn")
+    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 1400, words: words), 1, "constellation edge: the line lands exactly as the next word starts")
+    expectEqual(Reveal.edgeProgress(index: 0, nowMs: 5000, words: words), 1, "constellation edge: past lines stay connected")
+    expectEqual(Reveal.edgeProgress(index: 2, nowMs: 5000, words: words), 0, "constellation edge: nothing is drawn past the last word")
+    expectEqual(Reveal.edgeProgress(index: -1, nowMs: 5000, words: words), 0, "constellation edge: an out-of-range index draws nothing")
 
-    expectEqual(Reveal.appearProgress(index: 1, nowMs: 1399, words: words), 0, "星座出场: 没到起始时间不出场")
-    expectEqual(Reveal.appearProgress(index: 1, nowMs: 1400, words: words), 0, "星座出场: 起始时间那一刻从零开始放大")
+    expectEqual(Reveal.appearProgress(index: 1, nowMs: 1399, words: words), 0, "constellation appear: nothing before the start time")
+    expectEqual(Reveal.appearProgress(index: 1, nowMs: 1400, words: words), 0, "constellation appear: growth starts from zero at the start time")
     expectEqual(Reveal.appearProgress(index: 1, nowMs: 1400 + Reveal.appearMs, words: words), 1,
-                "星座出场: 放大用掉 appearMs 之后到位")
-    expectEqual(Reveal.appearProgress(index: 1, nowMs: 9999, words: words), 1, "星座出场: 之后一直是满的")
+                "constellation appear: fully grown after appearMs")
+    expectEqual(Reveal.appearProgress(index: 1, nowMs: 9999, words: words), 1, "constellation appear: stays full afterwards")
 
-    expectEqual(Reveal.settleProgress(index: 0, nowMs: 1399, words: words), 0, "星座收小: 还是当前词时不收")
+    expectEqual(Reveal.settleProgress(index: 0, nowMs: 1399, words: words), 0, "constellation settle: the active word does not shrink")
     expectEqual(Reveal.settleProgress(index: 0, nowMs: 1400 + Reveal.settleMs / 2, words: words), 0.5,
-                "星座收小: 下一个词开口后按 settleMs 收到一半")
+                "constellation settle: half shrunk settleMs/2 after the next word starts")
     expectEqual(Reveal.settleProgress(index: 0, nowMs: 1400 + Reveal.settleMs, words: words), 1,
-                "星座收小: settleMs 之后收到底(13pt / 40%)")
-    expectEqual(Reveal.settleProgress(index: 2, nowMs: 9999, words: words), 0, "星座收小: 最后一个词后面没有词,不收")
+                "constellation settle: fully shrunk after settleMs (13pt / 40%)")
+    expectEqual(Reveal.settleProgress(index: 2, nowMs: 9999, words: words), 0, "constellation settle: the last word has no successor, so it never shrinks")
 }
 
 private func checkConstellationWiring() {
-    print("\n== 星座:接线 ==")
+    print("\n== constellation: wiring ==")
     expectEqual(OverlayVisibility.shouldShow(isVisible: true, hiddenForNoLyrics: false, coveredByFullScreen: false,
                                              hideWhenNotPlaying: false, isPlaying: true, hiddenForAd: false,
                                              constellationOpen: true), false,
-                "星座接线: 星座窗口开着时悬浮歌词藏起来,同一句不画两遍")
+                "constellation wiring: the floating overlay hides while the window is open, so no line is drawn twice")
     expectEqual(OverlayVisibility.shouldShow(isVisible: true, hiddenForNoLyrics: false, coveredByFullScreen: false,
                                              hideWhenNotPlaying: false, isPlaying: true, hiddenForAd: false), true,
-                "星座接线: 星座窗口没开着时悬浮歌词照常显示")
+                "constellation wiring: the overlay shows as usual when the window is closed")
 
     let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
     func source(_ path: String) -> String {
@@ -225,30 +225,30 @@ private func checkConstellationWiring() {
     let controller = source("lyrimuse/UI/LyricsOverlayWindowController.swift")
     expectEqual(controller.contains("ConstellationWindowController.shared.$isOpen")
                 && controller.contains("constellationOpen: hiddenForConstellation"), true,
-                "星座接线: 悬浮窗订阅星座窗口开关,并把它喂给显示判定")
+                "constellation wiring: the overlay subscribes to the window state and feeds it to the visibility rule")
 
     expectEqual(window.contains("let wanted: NSWindow.CollectionBehavior = [.fullScreenPrimary]")
                 && window.contains("NSWindow.didUpdateNotification"), true,
-                "星座窗口: 绿键要显示成全屏箭头,collectionBehavior 每个更新周期都补一次")
+                "constellation window: collectionBehavior is re-applied each update cycle so the green button shows arrows")
     expectEqual(window.contains("window.toggleFullScreen(nil)"), true,
-                "星座窗口: 打开时进原生全屏(自己的 Space)")
+                "constellation window: opening enters native full screen in its own Space")
 
     let window = source("lyrimuse/UI/ConstellationWindow.swift")
     expectEqual(window.contains("RealAudioMeter.shared.setListening(self, follow, ignoresSetting: true)"), true,
-                "星座边框: 窗口开着时自己去要真实电平,不看灵动岛那个开关")
+                "constellation border: the open window requests levels itself, ignoring the notch switch")
     expectEqual(window.contains("coordinator.$artworkAccentColor"), true,
-                "星座边框: 颜色跟着封面主色走")
+                "constellation border: colour follows the cover accent")
     expectEqual(window.contains("let wanted = windowOpen && borderEnabled"), true,
-                "星座边框: 关掉边框就不再读音频")
+                "constellation border: turning the border off stops reading audio")
     expectEqual(source("lyrimuse/SettingsView.swift").contains("isOn: $settings.constellationBorder"), true,
-                "星座边框: 「星座」那一段有独立开关")
+                "constellation border: the Constellation section has its own switch")
     expectEqual(source("lyrimuse/UI/ConstellationView.swift").contains("guard borderEnabled,"), true,
-                "星座边框: 关掉就不画")
+                "constellation border: off means it is not drawn")
 
     let scenes = source("lyrimuse/App.swift")
-    expectEqual(scenes.contains("id: ConstellationWindowID.scene"), true, "星座窗口: 场景挂在 App 的场景树上")
+    expectEqual(scenes.contains("id: ConstellationWindowID.scene"), true, "constellation window: the scene is mounted in the app scene tree")
     expectEqual(source("lyrimuse/MenuBar/MenuBarSceneActions.swift").contains("AppActions.shared.openConstellation"),
-                true, "星座窗口: 开窗的环境 action 在锚点视图里捕获")
+                true, "constellation window: the open action is captured in the anchor view")
     expectEqual(source("lyrimuse/SettingsView.swift").contains("AppActions.shared.openConstellation?()"), true,
-                "星座窗口: 「歌词显示 › 星座」那一段有打开入口")
+                "constellation window: the Lyrics display > Constellation section has an open button")
 }

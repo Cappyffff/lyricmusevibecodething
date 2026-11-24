@@ -11,7 +11,7 @@ import os
 /// 读的是此刻那个播放器的进程(`ProcessAudioTap`,macOS 14.2+);换了播放器就换 tap,没人要了过几秒拆掉。
 /// 读不到(没授权、播放器不在本机出声、系统太旧)时各音浪照旧走歌词时间轴那套(`EqualizerBarCurve`),判据在
 /// `RealAudioLevelGate`。只读频段能量,采样不出内存、不写盘。见 05 章决策 146。
-/// 要真实电平的那一方。音浪是其中一个,星座窗口的边框是另一个。
+/// Anything that wants real band levels: the equalizer bars are one, the constellation border another.
 @MainActor
 protocol RealAudioListener: AnyObject {
     func realAudioModeChanged(live: Bool)
@@ -38,7 +38,7 @@ final class RealAudioMeter: ObservableObject {
 
     private struct WeakListener {
         weak var target: (any RealAudioListener)?
-        /// 这一方不看灵动岛那个开关(星座窗口开着就要读)。
+        /// This listener ignores the notch switch (the constellation window wants levels whenever it is open).
         var ignoresSetting: Bool
     }
     private var listeners: [ObjectIdentifier: WeakListener] = [:]

@@ -132,7 +132,7 @@ public enum ConstellationLayout {
                               shortest: CGFloat, longest: CGFloat) -> (point: CGPoint, heading: CGFloat)? {
         var best: (point: CGPoint, heading: CGFloat, clearance: CGFloat)?
         let steps: [CGFloat] = [longest, (shortest + longest) / 2, shortest]
-        // `CGRect.contains` 右下两边是开区间,夹到 maxX / maxY 上的点会被判成出界。
+        // `CGRect.contains` is half-open on the right and bottom, so a point clamped onto maxX / maxY reads as outside.
         let limitX: CGFloat = inner.maxX.nextDown
         let limitY: CGFloat = inner.maxY.nextDown
         for turnIndex in 0..<48 {

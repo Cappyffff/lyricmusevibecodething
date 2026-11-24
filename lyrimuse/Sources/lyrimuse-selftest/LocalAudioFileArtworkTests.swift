@@ -342,7 +342,8 @@ private func oggOpus(picture: [UInt8]?) -> [UInt8] {
         + page([0xF8, 0xFF, 0xFE], sequence: 2, flags: 4, granule: 960 + 312)
 }
 
-/// 一串字节首尾相接。长链的 `+` 在更严的工具链上会把类型检查拖垮,参数类型定死就没有重载可搜。
+/// Joins byte runs end to end. Long `+` chains stall the type checker on stricter toolchains;
+/// a fixed parameter type leaves no overloads to search.
 private func cat(_ parts: [UInt8]...) -> [UInt8] { parts.flatMap { $0 } }
 
 private func littleEndian(_ value: UInt64, _ count: Int) -> [UInt8] {

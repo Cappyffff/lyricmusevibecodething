@@ -70,8 +70,9 @@ final class ConstellationWindowController: ObservableObject {
         }
     }
 
-    /// 绿键要显示成全屏箭头、能进自己的 Space:SwiftUI `Window` 默认把 `.fullScreenPrimary` 摘掉,
-    /// 而且每个更新周期都会复写回去,所以挂在 `didUpdateNotification` 上持续补。缺才写,不自激。
+    /// The green button must show the full-screen arrows and reach its own Space. SwiftUI `Window` strips
+    /// `.fullScreenPrimary` and rewrites it every update cycle, so this re-applies it on `didUpdateNotification`.
+    /// Writes only when a flag is missing, so it never feeds itself.
     private static func enforceFullScreenCapability(_ window: NSWindow) {
         let wanted: NSWindow.CollectionBehavior = [.fullScreenPrimary]
         let unwanted: NSWindow.CollectionBehavior = [.fullScreenNone, .fullScreenAuxiliary, .canJoinAllSpaces]
@@ -100,7 +101,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     @Published private(set) var plainText: String?
     @Published private(set) var clockRunning = false
     @Published private(set) var accent: Color?
-    /// 真实频段电平;空 = 没在跟随音频,边框走自己的呼吸。
+    /// Real band levels; empty means no audio is being followed and the border breathes on its own.
     @Published private(set) var levels: [Double] = []
 
     @Published private(set) var borderEnabled = AppSettings.shared.constellationBorder
@@ -139,7 +140,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
             .store(in: &subscriptions)
     }
 
-    /// 星座窗口开着、边框也开着时才读音频;设置页那份预览不读。
+    /// Audio is read only while the window is open and the border is on; the settings preview never reads it.
     func followAudio(_ follow: Bool) {
         windowOpen = follow
         syncAudio()

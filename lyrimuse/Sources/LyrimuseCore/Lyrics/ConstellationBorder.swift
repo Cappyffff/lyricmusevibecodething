@@ -34,7 +34,8 @@ public enum ConstellationBorder {
         baseThickness + energyThickness + spikeThickness
     }
 
-    /// 没有真实电平时的呼吸:各频段按不同周期慢慢起伏,边仍在动,只是不跟着音乐。
+    /// Breathing levels for when no real audio is available: each band drifts on its own period, so the
+    /// border keeps moving, it just is not following the music.
     public static func idleLevels(nowSeconds: Double) -> [Double] {
         (0..<idleBandCount).map { band in
             let period: Double = 5.5 + Double(band) * 1.7
@@ -44,7 +45,7 @@ public enum ConstellationBorder {
         }
     }
 
-    /// 这条边上 `u`(0…1)处的厚度。`levels` 是 0…1 的频段电平,少给或给了非有限值都按 0 算。
+    /// Thickness at `u` (0…1) along one edge. `levels` are 0…1 band levels; missing or non-finite values count as 0.
     public static func thickness(at u: Double, nowSeconds: Double, levels: [Double]) -> CGFloat {
         let safe: [Double] = levels.map { $0.isFinite ? min(1, max(0, $0)) : 0 }
         let energy: Double = safe.isEmpty ? 0 : safe.reduce(0, +) / Double(safe.count)
@@ -65,7 +66,7 @@ public enum ConstellationBorder {
         return min(max(steady + spike, minimumThickness), maximumThickness)
     }
 
-    /// 一条边采样成 `samples + 1` 个厚度,给视图连成内沿那条曲线。
+    /// One edge sampled into `samples + 1` thicknesses, which the view joins into the inner boundary.
     public static func profile(samples: Int, nowSeconds: Double, levels: [Double]) -> [CGFloat] {
         guard samples > 0 else { return [] }
         return (0...samples).map { step in
