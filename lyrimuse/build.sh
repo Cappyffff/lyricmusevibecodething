@@ -37,7 +37,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")" # lyrimuse/
 
-APP_NAME="Lyrimuse"
+APP_NAME="Lyricmuse"
 
 # 这次请求的时刻、是不是一次不带参数的普通装机:排队合并要用(见下面 coalesce_if_installed),必须在排队之前记。
 BUILD_REQUESTED_AT="$(/usr/bin/python3 -c 'import time; print("%.3f" % time.time())')"

@@ -15,48 +15,70 @@ private func checkConstellationBorder() {
 
     let loud: [Double] = [1, 1, 1, 1, 1]
     let quiet: [Double] = [0, 0, 0, 0, 0]
-    expectEqual(B.profile(samples: 8, nowSeconds: 3.3, levels: quiet).allSatisfy { $0 == B.baseThickness }, true,
-                "constellation border: silence gives an even-width edge")
-    expectEqual(B.profile(samples: 12, nowSeconds: 0, levels: []).count, 13, "constellation border: one more sample than segments")
-    expectEqual(B.profile(samples: 0, nowSeconds: 0, levels: loud), [], "constellation border: no samples, no points")
+
+    expectEqual(B.loopDistance(0.05, 0.95) < 0.11, true, "constellation border: the perimeter wraps, so the ends are neighbours")
+    expectEqual(B.loopDistance(0.1, 0.6), 0.5, "constellation border: opposite sides are half a loop apart")
 
     var outOfRange: [String] = []
     let messy: [[Double]] = [[], [0.5], loud, quiet, [-4, 9, .nan, .infinity, 0.3], [0.2, 0.9, 0.1]]
     for levels in messy {
-        for tick in 0..<240 {
-            let seconds: Double = Double(tick) * 0.37 - 20
-            for step in 0...24 {
-                let u: Double = Double(step) / 24
-                let value = B.thickness(at: u, nowSeconds: seconds, levels: levels)
-                if !(value >= B.minimumThickness && value <= B.maximumThickness) {
-                    outOfRange.append("\(levels.count) bands t=\(seconds) u=\(u): \(value)")
-                }
+        for tick in 0..<200 {
+            let seconds: Double = Double(tick) * 0.41 - 15
+            for step in 0...20 {
+                let p: Double = Double(step) / 20
+                let lit = B.intensity(at: p, nowSeconds: seconds, levels: levels)
+                if !(lit >= 0 && lit <= 1) { outOfRange.append("\(levels.count) bands t=\(seconds) p=\(p): \(lit)") }
             }
         }
     }
-    expectEqual(outOfRange.first, nil, "constellation border: even absurd levels stay between the thinnest and thickest")
+    expectEqual(outOfRange.first, nil, "constellation border: brightness stays within 0…1 for any levels")
 
-    expectEqual(B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
-                B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
-                "constellation border: same moment and position measures the same")
+    expectEqual(B.intensity(at: 0.3, nowSeconds: 7, levels: loud),
+                B.intensity(at: 0.3, nowSeconds: 7, levels: loud),
+                "constellation border: same moment and position is the same brightness")
 
-    func meanThickness(_ energy: Double) -> CGFloat {
-        let levels = [Double](repeating: energy, count: RealAudioSpectrum.bandCount)
-        let profile = B.profile(samples: 400, nowSeconds: 12.5, levels: levels)
-        return profile.reduce(0, +) / CGFloat(profile.count)
+    func brightest(_ levels: [Double], _ seconds: Double) -> Double {
+        (0...240).map { B.intensity(at: Double($0) / 240, nowSeconds: seconds, levels: levels) }.max() ?? 0
     }
-    let steps: [CGFloat] = [0, 0.25, 0.5, 0.75, 1].map(meanThickness)
-    expectEqual(zip(steps, steps.dropFirst()).allSatisfy { $0 < $1 }, true, "constellation border: louder thickens the whole edge")
+    expectEqual(brightest(loud, 3) > brightest(quiet, 3), true, "constellation border: louder burns brighter")
+    expectEqual(brightest(quiet, 3) < 0.2, true, "constellation border: silence leaves only a trace")
 
-    let still = B.profile(samples: 48, nowSeconds: 4, levels: loud)
-    let later = B.profile(samples: 48, nowSeconds: 4.5, levels: loud)
-    expectEqual(still == later, false, "constellation border: the wave travels with time rather than sitting still")
+    func peakPosition(_ seconds: Double) -> Double {
+        var best = (position: 0.0, lit: -1.0)
+        for step in 0...240 {
+            let p = Double(step) / 240
+            let lit = B.intensity(at: p, nowSeconds: seconds, levels: [1, 0, 0, 0, 0])
+            if lit > best.lit { best = (p, lit) }
+        }
+        return best.position
+    }
+    expectEqual(peakPosition(0) != peakPosition(6), true, "constellation border: the bright patch travels around the loop")
+
+    let flat = (0...60).map { B.intensity(at: Double($0) / 60, nowSeconds: 2, levels: [0.5, 0.5, 0.5, 0.5, 0.5]) }
+    expectEqual(Set(flat.map { ($0 * 1000).rounded() }).count > 1, true,
+                "constellation border: the inner edge ripples rather than sitting flat")
+
+    let corners = (0..<4).map { B.loopPosition(edge: $0, fraction: 0, width: 800, height: 400) }
+    expectEqual(corners.sorted() == corners && corners[0] == 0, true,
+                "constellation border: the four edges run in order around one loop")
+    expectEqual(B.loopPosition(edge: 3, fraction: 1, width: 800, height: 400) < 0.001, true,
+                "constellation border: the end of the last edge meets the start of the first")
 
     let idle = B.idleLevels(nowSeconds: 9)
-    expectEqual(idle.count, RealAudioSpectrum.bandCount, "constellation border: idle levels still fill all five bands")
+    expectEqual(idle.count, RealAudioSpectrum.bandCount, "constellation border: idle levels fill all five bands")
     expectEqual(idle.allSatisfy { $0 >= 0 && $0 <= 1 }, true, "constellation border: breathing levels stay within 0…1")
     expectEqual(B.idleLevels(nowSeconds: 9) == B.idleLevels(nowSeconds: 14), false,
-                "constellation border: the border still moves without audio")
+                "constellation border: the glow still drifts without audio")
+
+    let art: [UInt8] = (0..<256).flatMap { index -> [UInt8] in
+        index % 2 == 0 ? [220, 40, 30, 255] : [30, 60, 210, 255]
+    }
+    let swatches = ConstellationPalette.swatches(premultipliedRGBA: art)
+    expectEqual(swatches.count, 2, "constellation palette: two strong hues come back as two stops")
+    expectEqual(swatches.map(\.hue) == swatches.map(\.hue).sorted(), true,
+                "constellation palette: stops are ordered around the colour wheel")
+    expectEqual(ConstellationPalette.swatches(premultipliedRGBA: [8, 8, 8, 255]).isEmpty, true,
+                "constellation palette: a near-black sleeve yields nothing rather than mud")
 }
 
 private func minimumDistance(_ points: [CGPoint]) -> CGFloat {
@@ -120,15 +142,21 @@ private func checkConstellationLayout() {
     for index in 1..<walked.count {
         steps.append(hypot(walked[index].x - walked[index - 1].x, walked[index].y - walked[index - 1].y))
     }
-    let shortest: CGFloat = L.stepRange.lowerBound - 0.5
-    let longest: CGFloat = L.stepRange.upperBound + 0.5
+    let shortest: CGFloat = L.stepRange.lowerBound * L.spreadCeiling - 0.5
+    let longest: CGFloat = L.stepRange.upperBound * L.spreadCeiling + 0.5
     let paced: Bool = steps.allSatisfy { $0 >= shortest && $0 <= longest }
-    expectEqual(paced, true, "constellation layout: with room to spare, neighbouring stars sit 80-120pt apart")
+    expectEqual(paced, true, "constellation layout: a roomy canvas stretches the stride so the run fills it")
 
     expectEqual(L.separation(count: 25, canvas: L.Canvas(size: CGSize(width: 600, height: 360))) < L.minSeparation, true,
                 "constellation layout: too many words for the area narrows the minimum separation")
-    expectEqual(L.separation(count: 6, canvas: canvas), L.minSeparation,
-                "constellation layout: with room to spare the minimum separation is 64pt")
+    expectEqual(L.separation(count: 6, canvas: canvas), L.minSeparation * L.spreadCeiling,
+                "constellation layout: a roomy canvas widens the separation to its ceiling")
+
+    let five = L.points(count: 5, seed: seed, canvas: canvas)
+    let twelve = L.points(count: 12, seed: seed, canvas: canvas)
+    let whole = L.points(count: L.runCapacity, seed: seed, canvas: canvas)
+    expectEqual(Array(twelve.prefix(5)), five, "constellation layout: a star never moves once the next word lands")
+    expectEqual(Array(whole.prefix(12)), twelve, "constellation layout: the whole run is laid out up front")
 
     let phraseSeed = L.seed(for: phrase)
     let longWord: CGFloat = L.emphasis(durationMs: 900, index: 3, seed: phraseSeed)

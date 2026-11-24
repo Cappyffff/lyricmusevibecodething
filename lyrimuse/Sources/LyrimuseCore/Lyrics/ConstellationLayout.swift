@@ -6,6 +6,12 @@ public enum ConstellationLayout {
     public static let turnRange: ClosedRange<CGFloat> = 30...75
     public static let minSeparation: CGFloat = 64
     public static let defaultMargin: CGFloat = 96
+    /// How far spacing may grow past `stepRange` so a run fills a big canvas instead of
+    /// huddling in the middle. The walk still shrinks below 1 when a run is crowded.
+    public static let spreadCeiling: CGFloat = 2.5
+    /// How many words one constellation holds before it is cleared and a new one starts.
+    /// The walk always lays out this many and shows a prefix, so a star never moves once placed.
+    public static let runCapacity = 18
 
     public struct Canvas: Equatable, Sendable {
         public var size: CGSize
@@ -38,8 +44,13 @@ public enum ConstellationLayout {
     public static func separation(count: Int, canvas: Canvas) -> CGFloat {
         let inner = canvas.inner
         guard count > 1, inner.width > 0, inner.height > 0 else { return 0 }
-        return min(minSeparation * densityScale(count: count, inner: inner), min(inner.width, inner.height) / 2)
+        return min(minSeparation * densityScale(count: capacity(for: count), inner: inner),
+                   min(inner.width, inner.height) / 2)
     }
+
+    /// Spacing is chosen for a whole run, not for however many words have landed so far, so adding
+    /// the next word cannot shift the ones already on screen.
+    public static func capacity(for count: Int) -> Int { max(count, runCapacity) }
 
     public static func points(count: Int, seed: UInt64, canvas: Canvas) -> [CGPoint] {
         guard count > 0 else { return [] }
@@ -47,16 +58,17 @@ public enum ConstellationLayout {
         guard inner.width > 0, inner.height > 0 else {
             return Array(repeating: CGPoint(x: canvas.size.width / 2, y: canvas.size.height / 2), count: count)
         }
-        var attemptScale = densityScale(count: count, inner: inner)
+        let full = capacity(for: count)
+        var attemptScale = densityScale(count: full, inner: inner)
         var best: (points: [CGPoint], spread: CGFloat)?
         for attempt in 0..<4 {
             if attempt > 0 { attemptScale *= 0.75 }
-            let walked = walk(count: count, seed: seed, inner: inner, scale: attemptScale)
-            if walked.spread >= walked.separation { return walked.points }
+            let walked = walk(count: full, seed: seed, inner: inner, scale: attemptScale)
+            if walked.spread >= walked.separation { return Array(walked.points.prefix(count)) }
             if let current = best, walked.spread <= current.spread { continue }
             best = (walked.points, walked.spread)
         }
-        return best?.points ?? []
+        return Array((best?.points ?? []).prefix(count))
     }
 
     private static func densityScale(count: Int, inner: CGRect) -> CGFloat {
@@ -65,7 +77,7 @@ public enum ConstellationLayout {
         let perNode: CGFloat = area / CGFloat(count)
         let room: CGFloat = perNode.squareRoot() * 0.78
         let ratio: CGFloat = room / minSeparation
-        return min(max(ratio, 0.3), 1)
+        return min(max(ratio, 0.3), spreadCeiling)
     }
 
     private static func walk(count: Int, seed: UInt64, inner: CGRect,
@@ -210,6 +222,9 @@ public struct ConstellationDust: Equatable, Sendable {
 public struct ConstellationReveal: Equatable, Sendable {
     public static let appearMs = 180
     public static let settleMs = 320
+    /// Words light this far ahead of their timestamp. Landing exactly on it reads as late, because
+    /// a karaoke fill has already been moving through the word by the time it would appear.
+    public static let leadMs = 110
 
     public let revealedCount: Int
     public let activeIndex: Int?

@@ -3,20 +3,23 @@ import LyrimuseCore
 import SwiftUI
 
 enum ConstellationStyle {
-    static let backgroundCenter = Color(red: 0.16, green: 0.13, blue: 0.36)
-    static let backgroundEdge = Color(red: 0.03, green: 0.03, blue: 0.09)
+    static let backgroundCenter = Color(red: 0.075, green: 0.06, blue: 0.17)
+    static let backgroundEdge = Color(red: 0.012, green: 0.012, blue: 0.032)
     static let line = Color.white.opacity(0.42)
     static let activeText = Color.white
-    static let activeFontSize: CGFloat = 18
-    static let pastFontSize: CGFloat = 13
-    static let activeStarRadius: CGFloat = 13
-    static let pastStarRadius: CGFloat = 7
-    static let haloRadius: CGFloat = 21
-    static let labelGap: CGFloat = 14
+    static let activeFontSize: CGFloat = 34
+    static let pastFontSize: CGFloat = 12
+    static let activeStarRadius: CGFloat = 16
+    static let pastStarRadius: CGFloat = 6
+    static let haloRadius: CGFloat = 26
+    static let labelGap: CGFloat = 16
     static let dustCount = 90
     static let starWaist: CGFloat = 0.17
     static let borderFallback = Color(red: 0.98, green: 0.45, blue: 0.22)
-    static let borderSamples = 72
+    /// Samples around the whole perimeter loop.
+    static let borderSamples = 120
+    /// Nested passes per edge, outermost first, faking an inward falloff.
+    static let borderLayers: [(depth: CGFloat, alpha: Double)] = [(1, 0.22), (0.62, 0.34), (0.3, 0.9)]
 }
 
 struct ConstellationView: View {
@@ -27,6 +30,7 @@ struct ConstellationView: View {
     let paused: Bool
     var levels: [Double] = []
     var accent: Color?
+    var palette: [Color] = []
     var borderEnabled = true
 
     @State private var points: [CGPoint] = []
@@ -92,13 +96,14 @@ struct ConstellationView: View {
             : Self.layout(lineKey: lineKey, count: words.count, size: size)
         let weights = emphasis.count == words.count ? emphasis : Self.emphasisWeights(lineKey: lineKey, words: words)
 
-        let reveal = ConstellationReveal.at(nowMs: nowMs, words: words)
+        let lit = nowMs + ConstellationReveal.leadMs
+        let reveal = ConstellationReveal.at(nowMs: lit, words: words)
         guard let active = reveal.activeIndex else { return }
 
-        drawEdges(in: &context, points: points, through: active, nowMs: nowMs)
+        drawEdges(in: &context, points: points, through: active, nowMs: lit)
         for index in 0...active {
             drawNode(in: &context, size: size, index: index, active: active, point: points[index],
-                     emphasis: weights[index], nowMs: nowMs)
+                     emphasis: weights[index], nowMs: lit)
         }
     }
 
@@ -126,52 +131,56 @@ struct ConstellationView: View {
     private func drawBorder(in context: inout GraphicsContext, size: CGSize, seconds: Double) {
         guard borderEnabled, size.width > 0, size.height > 0 else { return }
         let beat: [Double] = levels.isEmpty ? ConstellationBorder.idleLevels(nowSeconds: seconds) : levels
-        let profile = ConstellationBorder.profile(samples: ConstellationStyle.borderSamples,
-                                                  nowSeconds: seconds, levels: beat)
-        guard profile.count > 1 else { return }
-        let tint: Color = accent ?? ConstellationStyle.borderFallback
-        let reach: CGFloat = ConstellationBorder.maximumThickness
-        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .top)
-        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .bottom)
-        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .leading)
-        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .trailing)
+        let stops = borderStops()
+        for edge in 0..<4 {
+            for layer in ConstellationStyle.borderLayers {
+                drawEdgeLayer(in: &context, size: size, seconds: seconds, levels: beat,
+                              edge: edge, depth: layer.depth, alpha: layer.alpha, stops: stops)
+            }
+        }
     }
 
-    private enum BorderEdge { case top, bottom, leading, trailing }
+    /// Colours taken from the cover art, laid along the edge so the glow is not one flat tint.
+    private func borderStops() -> [Color] {
+        if palette.count >= 2 { return palette }
+        if let accent { return [accent, accent] }
+        return [ConstellationStyle.borderFallback, ConstellationStyle.borderFallback]
+    }
 
-    private func drawEdge(in context: inout GraphicsContext, profile: [CGFloat], size: CGSize,
-                          tint: Color, reach: CGFloat, edge: BorderEdge) {
-        let steps = profile.count - 1
-        var path = Path()
+    private func drawEdgeLayer(in context: inout GraphicsContext, size: CGSize, seconds: Double,
+                               levels: [Double], edge: Int, depth: CGFloat, alpha: Double,
+                               stops: [Color]) {
+        let steps = ConstellationStyle.borderSamples
+        var outer = Path()
+        var inner: [CGPoint] = []
+        var brightest: Double = 0
         for step in 0...steps {
-            let fraction: CGFloat = CGFloat(step) / CGFloat(steps)
-            let point = borderPoint(edge: edge, fraction: fraction, depth: 0, size: size)
-            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            let fraction: Double = Double(step) / Double(steps)
+            let loop = ConstellationBorder.loopPosition(edge: edge, fraction: fraction,
+                                                        width: size.width, height: size.height)
+            let lit = ConstellationBorder.intensity(at: loop, nowSeconds: seconds, levels: levels)
+            brightest = max(brightest, lit)
+            let reach: CGFloat = ConstellationBorder.maximumThickness * CGFloat(lit) * depth
+            let edgePoint = borderPoint(edge: edge, fraction: CGFloat(fraction), depth: 0, size: size)
+            if step == 0 { outer.move(to: edgePoint) } else { outer.addLine(to: edgePoint) }
+            inner.append(borderPoint(edge: edge, fraction: CGFloat(fraction), depth: reach, size: size))
         }
-        for step in stride(from: steps, through: 0, by: -1) {
-            let fraction: CGFloat = CGFloat(step) / CGFloat(steps)
-            let point = borderPoint(edge: edge, fraction: fraction, depth: profile[step], size: size)
-            path.addLine(to: point)
-        }
-        path.closeSubpath()
+        guard brightest > 0.01 else { return }
+        for point in inner.reversed() { outer.addLine(to: point) }
+        outer.closeSubpath()
 
-        let stops: [Gradient.Stop] = [
-            Gradient.Stop(color: tint.opacity(0.92), location: 0),
-            Gradient.Stop(color: tint.opacity(0.55), location: 0.16),
-            Gradient.Stop(color: tint.opacity(0.14), location: 0.52),
-            Gradient.Stop(color: tint.opacity(0), location: 1),
-        ]
-        let start = borderPoint(edge: edge, fraction: 0.5, depth: 0, size: size)
-        let end = borderPoint(edge: edge, fraction: 0.5, depth: reach, size: size)
-        context.fill(path, with: .linearGradient(Gradient(stops: stops), startPoint: start, endPoint: end))
+        let tinted: [Color] = stops.map { $0.opacity(alpha * ConstellationBorder.maximumAlpha) }
+        let from = borderPoint(edge: edge, fraction: 0, depth: 0, size: size)
+        let to = borderPoint(edge: edge, fraction: 1, depth: 0, size: size)
+        context.fill(outer, with: .linearGradient(Gradient(colors: tinted), startPoint: from, endPoint: to))
     }
 
-    private func borderPoint(edge: BorderEdge, fraction: CGFloat, depth: CGFloat, size: CGSize) -> CGPoint {
+    private func borderPoint(edge: Int, fraction: CGFloat, depth: CGFloat, size: CGSize) -> CGPoint {
         switch edge {
-        case .top: return CGPoint(x: size.width * fraction, y: depth)
-        case .bottom: return CGPoint(x: size.width * fraction, y: size.height - depth)
-        case .leading: return CGPoint(x: depth, y: size.height * fraction)
-        case .trailing: return CGPoint(x: size.width - depth, y: size.height * fraction)
+        case 0: return CGPoint(x: size.width * fraction, y: depth)
+        case 1: return CGPoint(x: size.width - depth, y: size.height * fraction)
+        case 2: return CGPoint(x: size.width * (1 - fraction), y: size.height - depth)
+        default: return CGPoint(x: depth, y: size.height * (1 - fraction))
         }
     }
 
@@ -220,8 +229,9 @@ struct ConstellationView: View {
             context.stroke(Path(ellipseIn: box), with: .color(.white.opacity(haloAlpha)), lineWidth: 1)
         }
 
+        let starInk: Color = index == active ? (accent ?? .white) : .white
         context.fill(starPath(center: point, radius: starRadius),
-                     with: .color(.white.opacity(starAlpha)))
+                     with: .color(starInk.opacity(starAlpha)))
 
         let label: String = words[index].text.trimmingCharacters(in: .whitespaces)
         let weight: Font.Weight = index == active ? .bold : .medium

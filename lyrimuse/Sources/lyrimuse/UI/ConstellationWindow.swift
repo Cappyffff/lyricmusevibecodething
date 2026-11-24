@@ -101,6 +101,8 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     @Published private(set) var plainText: String?
     @Published private(set) var clockRunning = false
     @Published private(set) var accent: Color?
+    /// Cover-art colours for the border gradient.
+    @Published private(set) var palette: [Color] = []
     /// Real band levels; empty means no audio is being followed and the border breathes on its own.
     @Published private(set) var levels: [Double] = []
 
@@ -109,6 +111,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     private var subscriptions: Set<AnyCancellable> = []
     private var listening = false
     private var windowOpen = false
+    private var lastLineKey: String?
 
     init(live: Bool = true) {
         guard live else { return }
@@ -118,8 +121,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
                 guard let self else { return }
                 let text = line?.plainText ?? line?.mainText
                 plainText = text
-                words = line?.words ?? []
-                lineKey = text ?? ""
+                take(line?.words ?? [], key: text ?? "")
             }
             .store(in: &subscriptions)
         coordinator.$isPlayingSmoothed
@@ -130,6 +132,10 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
             .removeDuplicates()
             .sink { [weak self] color in self?.accent = color }
             .store(in: &subscriptions)
+        coordinator.$artworkImage
+            .removeDuplicates()
+            .sink { [weak self] image in self?.palette = Self.paletteColors(from: image) }
+            .store(in: &subscriptions)
         AppSettings.shared.$constellationBorder
             .removeDuplicates()
             .sink { [weak self] on in
@@ -138,6 +144,38 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
                 syncAudio()
             }
             .store(in: &subscriptions)
+    }
+
+    /// Cover art down to 24x24, then the dominant hues out of it.
+    private static func paletteColors(from image: NSImage?) -> [Color] {
+        guard let image, let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return [] }
+        let side = 24
+        let space = CGColorSpaceCreateDeviceRGB()
+        let info = CGImageAlphaInfo.premultipliedLast.rawValue
+        guard let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8,
+                                      bytesPerRow: side * 4, space: space, bitmapInfo: info) else { return [] }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: side, height: side))
+        guard let raw = context.data else { return [] }
+        let bytes = raw.bindMemory(to: UInt8.self, capacity: side * side * 4)
+        let pixels = [UInt8](UnsafeBufferPointer(start: bytes, count: side * side * 4))
+        let swatches = ConstellationPalette.swatches(premultipliedRGBA: pixels)
+        guard swatches.count >= 2 else { return [] }
+        return swatches.map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+    }
+
+    /// One constellation spans several lines: words pile up until the run is full, then it clears and
+    /// a new one starts. A run keeps its seed so the stars already on screen never move.
+    private func take(_ incoming: [SyncedLyricWord], key: String) {
+        guard !incoming.isEmpty, key != lastLineKey else { return }
+        lastLineKey = key
+        let rewound = incoming[0].startMs < (words.last?.startMs ?? Int.min)
+        if rewound || words.count + incoming.count > ConstellationLayout.runCapacity {
+            words = incoming
+            lineKey = key
+            return
+        }
+        if words.isEmpty { lineKey = key }
+        words += incoming
     }
 
     /// Audio is read only while the window is open and the border is on; the settings preview never reads it.
@@ -175,6 +213,7 @@ struct ConstellationScene: View {
             paused: !feed.clockRunning,
             levels: feed.levels,
             accent: feed.accent,
+            palette: feed.palette,
             borderEnabled: feed.borderEnabled)
             .ignoresSafeArea()
             .background(ConstellationWindowCapture())
@@ -215,6 +254,7 @@ struct ConstellationPreviewStage: View {
             nowMs: { PlaybackCoordinator.shared.lyricsTimelineMs() },
             paused: !feed.clockRunning,
             accent: feed.accent,
+            palette: feed.palette,
             borderEnabled: feed.borderEnabled)
             .frame(height: 220)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
