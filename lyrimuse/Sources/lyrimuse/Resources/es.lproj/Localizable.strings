@@ -1434,6 +1434,7 @@
 "打开并登录后将自动连接" = "Se conecta automáticamente cuando esté abierto y hayas iniciado sesión";
 "打开引导" = "Abrir guía de configuración";
 "打开授权页" = "Abrir página de autorización";
+"打开星座窗口" = "Abrir ventana de constelación";
 "打开歌词窗口" = "Abrir ventana de letra";
 "打开歌词管理" = "Abrir gestor de letras";
 "打开洛雪音乐" = "Abrir LX Music";
@@ -1730,6 +1731,7 @@
 "时间轴" = "Sincronización";
 "时间轴偏移" = "Desfase de tiempo";
 "时间轴整体偏移" = "Desfase en toda la línea de tiempo";
+"星座" = "Constelación";
 "昨天" = "Ayer";
 "显示" = "Mostrar";
 "显示 10 首" = "Mostrar 10 canciones";
@@ -2921,6 +2923,7 @@
 "逐字歌词仅修改文字，每个字保留原有时间；新增或修改了时间戳的句子按字数分配时间" = "Letra palabra por palabra: edita solo el texto. Cada palabra conserva su tiempo; las líneas nuevas o con la marca de tiempo modificada reparten el tiempo según su longitud";
 "逐字歌词改存为「%@」？" = "¿Guardar la letra palabra por palabra como %@?";
 "逐字歌词格式" = "Formato de letra palabra por palabra";
+"逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线" = "La letra palabra por palabra dibujada como una constelación: cada palabra es una estrella que se enciende y se enlaza al cantarse";
 "逐字歌词随演唱逐字高亮；无逐字数据的歌曲整行高亮" = "Palabra por palabra: cada palabra se ilumina al cantarse. Las canciones sin tiempos por palabra resaltan la línea completa";
 "逐帧 JPEG" = "JPEG por fotograma";
 "逐行" = "Línea por línea";

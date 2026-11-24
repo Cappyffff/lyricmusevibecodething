@@ -1434,6 +1434,7 @@
 "打开并登录后将自动连接" = "Connects automatically once it’s open and you’re signed in";
 "打开引导" = "Open Setup Guide";
 "打开授权页" = "Open Authorization Page";
+"打开星座窗口" = "Open constellation window";
 "打开歌词窗口" = "Open Lyrics Window";
 "打开歌词管理" = "Open Lyrics Manager";
 "打开洛雪音乐" = "Open LX Music";
@@ -1730,6 +1731,7 @@
 "时间轴" = "Timing";
 "时间轴偏移" = "Timing Offset";
 "时间轴整体偏移" = "Whole timeline offset";
+"星座" = "Constellation";
 "昨天" = "Yesterday";
 "显示" = "Show";
 "显示 10 首" = "Show 10 songs";
@@ -2921,6 +2923,7 @@
 "逐字歌词仅修改文字，每个字保留原有时间；新增或修改了时间戳的句子按字数分配时间" = "Word-by-word lyrics: edit the text only. Every word keeps its timing; new lines and lines with a changed timestamp get their time split evenly by length";
 "逐字歌词改存为「%@」？" = "Save Word-by-Word Lyrics as %@?";
 "逐字歌词格式" = "Word-by-Word Lyrics Format";
+"逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线" = "Word-by-word lyrics drawn as a constellation: every word is a star, lit and linked the moment it is sung";
 "逐字歌词随演唱逐字高亮；无逐字数据的歌曲整行高亮" = "Word-by-word lyrics: each word lights up as it is sung. Songs without word timings highlight the whole line";
 "逐帧 JPEG" = "Per-frame JPEG";
 "逐行" = "Line-timed";

@@ -13,6 +13,7 @@ final class AppActions {
     var openSettings: (() -> Void)?
     var openLyricsManager: (() -> Void)?
     var openLyricsWindow: (() -> Void)?
+    var openConstellation: (() -> Void)?
     /// 只开场景那扇完整尺寸的歌词窗口(激活 App),不按形态分流:出迷你时用(07 章决策 133)。别的地方一律走 `openLyricsWindow`。
     var openLyricsWindowScene: (() -> Void)?
     var openOnboarding: (() -> Void)?

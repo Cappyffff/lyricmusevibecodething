@@ -1434,6 +1434,7 @@
 "打开并登录后将自动连接" = "Verbindet sich automatisch, sobald es geöffnet ist und du angemeldet bist";
 "打开引导" = "Einrichtung öffnen";
 "打开授权页" = "Autorisierungsseite öffnen";
+"打开星座窗口" = "Sternbild-Fenster öffnen";
 "打开歌词窗口" = "Liedtextfenster öffnen";
 "打开歌词管理" = "Liedtext-Verwaltung öffnen";
 "打开洛雪音乐" = "LX Music öffnen";
@@ -1730,6 +1731,7 @@
 "时间轴" = "Timing";
 "时间轴偏移" = "Timing-Versatz";
 "时间轴整体偏移" = "Versatz der ganzen Zeitachse";
+"星座" = "Sternbild";
 "昨天" = "Gestern";
 "显示" = "Einblenden";
 "显示 10 首" = "10 Titel anzeigen";
@@ -2921,6 +2923,7 @@
 "逐字歌词仅修改文字，每个字保留原有时间；新增或修改了时间戳的句子按字数分配时间" = "Wort-für-Wort-Liedtext: Bearbeite nur den Text. Jedes Wort behält sein Timing; neue Zeilen und Zeilen mit geändertem Zeitstempel erhalten ihre Zeit gleichmäßig nach Länge verteilt";
 "逐字歌词改存为「%@」？" = "Wort-für-Wort-Liedtexte als %@ sichern?";
 "逐字歌词格式" = "Wort-für-Wort-Format";
+"逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线" = "Wortgenaue Liedtexte als Sternbild: Jedes Wort ist ein Stern, der beim Singen aufleuchtet und verbunden wird";
 "逐字歌词随演唱逐字高亮；无逐字数据的歌曲整行高亮" = "Wort für Wort: Jedes Wort leuchtet auf, während es gesungen wird. Titel ohne Wort-Timing heben die ganze Zeile hervor";
 "逐帧 JPEG" = "JPEG pro Frame";
 "逐行" = "Zeile für Zeile";

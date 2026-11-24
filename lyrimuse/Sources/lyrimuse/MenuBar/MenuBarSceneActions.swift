@@ -127,6 +127,11 @@ private struct SceneActionRegistrar: View {
                 AppActions.shared.openLyricsWindowScene = {
                     WindowActivation.openScene("lyrics-window") { openWindowAction(id: "lyrics-window") }
                 }
+                AppActions.shared.openConstellation = {
+                    WindowActivation.openScene(ConstellationWindowID.scene) {
+                        openWindowAction(id: ConstellationWindowID.scene)
+                    }
+                }
                 AppActions.shared.presentLyricsSearchWindow = {
                     WindowActivation.openScene("lyrics-quick-search") { openWindowAction(id: "lyrics-quick-search") }
                     // 窗口已经开着(没被真关掉)时,上面这行只是把它带到前台,不会让

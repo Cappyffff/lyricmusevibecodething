@@ -75,6 +75,9 @@ final class LyricsOverlayWindowController: NSWindowController, ObservableObject,
     private var hiddenForNoLyrics = false
     /// 「广告时隐藏」开着、这一刻在放广告(`isCurrentTrackAdBreak`),由 adObserver 写入。
     private var hiddenForAd = false
+    /// 星座窗口开着(`ConstellationWindowController.isOpen`),由 constellationObserver 写入:
+    /// 那扇窗已经在画同一句,悬浮窗再画一遍是重的。
+    private var hiddenForConstellation = false
     /// 「全屏时隐藏」开着、窗口所在屏幕的当前 Space 是全屏 App(`OverlayVisibility.fullScreenHides`),
     /// 由 applyFullScreenCover / refreshFullScreenCover 写入。
     private var coveredByFullScreen = false
@@ -105,6 +108,7 @@ final class LyricsOverlayWindowController: NSWindowController, ObservableObject,
     private var isPlayingObserver: AnyCancellable?
     private var noLyricsObserver: AnyCancellable?
     private var adObserver: AnyCancellable?
+    private var constellationObserver: AnyCancellable?
     private var fullScreenObserver: AnyCancellable?
     private var windowScreenObserver: NSObjectProtocol?
     private var shadowObserver: AnyCancellable?
@@ -681,6 +685,13 @@ final class LyricsOverlayWindowController: NSWindowController, ObservableObject,
                 hiddenForAd = hide
                 updateActualVisibility(isPlayingNow: PlaybackCoordinator.shared.isPlayingSmoothed)
             }
+        constellationObserver = ConstellationWindowController.shared.$isOpen
+            .removeDuplicates()
+            .sink { [weak self] open in
+                guard let self else { return }
+                hiddenForConstellation = open
+                updateActualVisibility(isPlayingNow: PlaybackCoordinator.shared.isPlayingSmoothed)
+            }
         // 「全屏时隐藏」:开关和全屏表两个输入同时从参数拿(同一个 willSet 坑);窗口换了屏另外重算一次。
         fullScreenObserver = AppSettings.shared.$overlayHideInFullScreen
             .combineLatest(FullScreenSpaceMonitor.shared.$fullScreenDisplays)
@@ -781,11 +792,13 @@ final class LyricsOverlayWindowController: NSWindowController, ObservableObject,
         let shouldShow = OverlayVisibility.shouldShow(isVisible: isVisible, hiddenForNoLyrics: hiddenForNoLyrics,
                                                       coveredByFullScreen: coveredByFullScreen,
                                                       hideWhenNotPlaying: hideWhenNotPlaying, isPlaying: isPlayingNow,
-                                                      hiddenForAd: hiddenForAd)
+                                                      hiddenForAd: hiddenForAd,
+                                                      constellationOpen: hiddenForConstellation)
         shownApartFromFullScreen = OverlayVisibility.shouldShow(isVisible: isVisible, hiddenForNoLyrics: hiddenForNoLyrics,
                                                                 coveredByFullScreen: false,
                                                                 hideWhenNotPlaying: hideWhenNotPlaying, isPlaying: isPlayingNow,
-                                                                hiddenForAd: hiddenForAd)
+                                                                hiddenForAd: hiddenForAd,
+                                                                constellationOpen: hiddenForConstellation)
         // 先补发当前句再上屏,同一拍里 SwiftUI 看到的就是新的那一句;收起之后停发。
         if shouldShow {
             surfaceFeed.set(true)

@@ -2952,7 +2952,7 @@ private struct AppearanceSettingsTab: View {
     /// `PanelQuickTarget.touchBar`)。分段取值在 `SettingsSearchCatalog.touchBarSectionValue`,
     /// 目录那边同样单列一个构造器。
     private enum Section: String, CaseIterable, Identifiable {
-        case overlay, notch, menuBar, touchBar, lyricsWindow
+        case overlay, notch, menuBar, touchBar, lyricsWindow, constellation
         var id: Self { self }
         var title: String {
             switch self {
@@ -2961,6 +2961,7 @@ private struct AppearanceSettingsTab: View {
             case .menuBar: return L10n.t("菜单栏")
             case .touchBar: return L10n.t("触控栏")
             case .lyricsWindow: return L10n.t("歌词窗口")
+            case .constellation: return L10n.t("星座")
             }
         }
     }
@@ -3063,6 +3064,25 @@ private struct AppearanceSettingsTab: View {
                     title: L10n.t("菜单栏歌词"),
                     isOn: $settings.showLyricsInMenuBar)
                 MenuBarAllSettingsDrawer()
+            }
+            .background { LastfmGlassGlow() }
+        case .constellation:
+            VStack(spacing: 14) {
+                ConstellationPreviewStage()
+                SettingsCard(cornerRadius: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L10n.t("星座"))
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(L10n.t("逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线"))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button(L10n.t("打开星座窗口")) { AppActions.shared.openConstellation?() }
+                            .padding(.top, 2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                }
             }
             .background { LastfmGlassGlow() }
         case .touchBar:

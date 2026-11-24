@@ -1359,6 +1359,7 @@
 "打开并登录后将自动连接" = "Açılıp oturum açtığınızda otomatik olarak bağlanır";
 "打开引导" = "Kurulum Kılavuzunu Aç";
 "打开授权页" = "Yetkilendirme Sayfasını Aç";
+"打开星座窗口" = "Takımyıldız penceresini aç";
 "打开歌词窗口" = "Şarkı Sözü Penceresini Aç";
 "打开歌词管理" = "Şarkı Sözü Yöneticisini Aç";
 "打开洛雪音乐" = "LX Music’i Aç";
@@ -1652,6 +1653,7 @@
 "时间轴" = "Zamanlama";
 "时间轴偏移" = "Zamanlama Kaydırması";
 "时间轴整体偏移" = "Tüm zamanlamada kayma";
+"星座" = "Takımyıldız";
 "昨天" = "Dün";
 "显示" = "Göster";
 "显示 10 首" = "10 parça göster";
@@ -2828,6 +2830,7 @@
 "逐字歌词仅修改文字，每个字保留原有时间；新增或修改了时间戳的句子按字数分配时间" = "Kelime kelime şarkı sözleri: yalnızca metni düzenleyin. Her kelime zamanlamasını korur; yeni satırlara ve zaman damgası değişen satırlara süre, uzunluklarına göre eşit dağıtılır";
 "逐字歌词改存为「%@」？" = "Kelime kelime şarkı sözleri “%@” biçiminde kaydedilsin mi?";
 "逐字歌词格式" = "Kelime Kelime Söz Biçimi";
+"逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线" = "Kelime kelime sözler bir takımyıldız olarak çizilir: her kelime, söylendiği anda yanan ve çizgiyle bağlanan bir yıldızdır";
 "逐字歌词随演唱逐字高亮；无逐字数据的歌曲整行高亮" = "Kelime kelime şarkı sözlerinde her kelime söylendikçe vurgulanır; kelime zamanlaması olmayan parçalarda satırın tamamı vurgulanır";
 "逐帧 JPEG" = "Kare başına JPEG";
 "逐行" = "Satır satır";

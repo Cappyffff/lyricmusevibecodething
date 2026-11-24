@@ -1434,6 +1434,7 @@
 "打开并登录后将自动连接" = "Connexion automatique une fois Discord ouvert et votre session active";
 "打开引导" = "Ouvrir le guide de configuration";
 "打开授权页" = "Ouvrir la page d’autorisation";
+"打开星座窗口" = "Ouvrir la fenêtre Constellation";
 "打开歌词窗口" = "Ouvrir la fenêtre des paroles";
 "打开歌词管理" = "Ouvrir le gestionnaire de paroles";
 "打开洛雪音乐" = "Ouvrir LX Music";
@@ -1730,6 +1731,7 @@
 "时间轴" = "Minutage";
 "时间轴偏移" = "Décalage du minutage";
 "时间轴整体偏移" = "Décalage global du minutage";
+"星座" = "Constellation";
 "昨天" = "Hier";
 "显示" = "Afficher";
 "显示 10 首" = "Afficher 10 morceaux";
@@ -2921,6 +2923,7 @@
 "逐字歌词仅修改文字，每个字保留原有时间；新增或修改了时间戳的句子按字数分配时间" = "Paroles mot à mot : modifiez uniquement le texte. Chaque mot garde son minutage ; les lignes nouvelles ou dont l’horodatage a changé voient leur durée répartie selon la longueur";
 "逐字歌词改存为「%@」？" = "Enregistrer les paroles mot à mot en %@ ?";
 "逐字歌词格式" = "Format des paroles mot à mot";
+"逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线" = "Les paroles mot à mot dessinées en constellation : chaque mot est une étoile qui s’allume et se relie dès qu’il est chanté";
 "逐字歌词随演唱逐字高亮；无逐字数据的歌曲整行高亮" = "Paroles mot à mot : chaque mot s’allume quand il est chanté. Sans minutage mot à mot, toute la ligne est surlignée";
 "逐帧 JPEG" = "JPEG image par image";
 "逐行" = "Ligne par ligne";

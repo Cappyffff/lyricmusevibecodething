@@ -110,5 +110,11 @@ struct LyrimuseApp: App {
         .commandsRemoved()
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
+        Window(L10n.t("星座"), id: ConstellationWindowID.scene) {
+            ConstellationScene()
+        }
+        .defaultSize(width: ConstellationWindowID.defaultSize.width,
+                     height: ConstellationWindowID.defaultSize.height)
+        .windowStyle(.hiddenTitleBar)
     }
 }
