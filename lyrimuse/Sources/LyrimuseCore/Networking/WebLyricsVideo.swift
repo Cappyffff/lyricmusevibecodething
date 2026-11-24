@@ -41,7 +41,7 @@ public enum WebLyricsVideo {
         out += [UInt8(s.count >> 8), UInt8(s.count & 0xFF)] + s
         out += [1, UInt8(p.count >> 8), UInt8(p.count & 0xFF)] + p
         if [100, 110, 122, 144].contains(s[1]) {
-            out += [0xFC | 1, 0xF8, 0xF8, 0]
+            out += [UInt8(0xFC | 1), 0xF8, 0xF8, 0]
         }
         return Data(out)
     }

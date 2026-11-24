@@ -152,17 +152,21 @@ public enum DiscordIPC {
             (item as? String) ?? ((item as? [String: Any])?["label"] as? String)
         }
         let urls = ((data["metadata"] as? [String: Any])?["button_urls"] as? [Any])?.count
-        var parts = [
-            "name=" + text(data["name"]),
-            "status_display_type=" + ((data["status_display_type"] as? NSNumber).map { "\($0.intValue)" } ?? "-"),
-            "details=" + text(data["details"]),
-            "state=" + text(data["state"]),
-            "large_text=" + text(assets?["large_text"]),
-            "large_image=" + ((assets?["large_image"] as? String)?.isEmpty == false ? "yes" : "no"),
-            "start=" + ((timestamps?["start"] as? NSNumber).map { "\($0.int64Value)" } ?? "-"),
-            "end=" + ((timestamps?["end"] as? NSNumber).map { "\($0.int64Value)" } ?? "-"),
-            "buttons=[" + buttons.map { "\"\($0)\"" }.joined(separator: ",") + "]",
-        ]
+        let statusDisplay: String = (data["status_display_type"] as? NSNumber).map { "\($0.intValue)" } ?? "-"
+        let largeImage: String = (assets?["large_image"] as? String)?.isEmpty == false ? "yes" : "no"
+        let start: String = (timestamps?["start"] as? NSNumber).map { "\($0.int64Value)" } ?? "-"
+        let end: String = (timestamps?["end"] as? NSNumber).map { "\($0.int64Value)" } ?? "-"
+        let buttonList: String = buttons.map { "\"\($0)\"" }.joined(separator: ",")
+        var parts: [String] = []
+        parts.append("name=" + text(data["name"]))
+        parts.append("status_display_type=" + statusDisplay)
+        parts.append("details=" + text(data["details"]))
+        parts.append("state=" + text(data["state"]))
+        parts.append("large_text=" + text(assets?["large_text"]))
+        parts.append("large_image=" + largeImage)
+        parts.append("start=" + start)
+        parts.append("end=" + end)
+        parts.append("buttons=[" + buttonList + "]")
         if let urls { parts.append("button_urls=\(urls)") }
         return parts.joined(separator: " ")
     }

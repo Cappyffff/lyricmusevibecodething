@@ -506,14 +506,23 @@ public enum LyrimuseDeepLink: Equatable, Sendable {
                 self = .debug(.simulateIdle)
             } else {
                 guard let title = value("title"), !title.isEmpty else { return nil }
+                let artist: String = value("artist") ?? ""
+                let album: String = value("album") ?? ""
+                let duration: Double? = seconds("duration").flatMap { $0 > 0 ? $0 : nil }
+                let position: Double = seconds("position") ?? 0
+                let playing: Bool = value("playing").flatMap(Self.parseBool) ?? true
+                let ad: Bool = value("ad").flatMap(Self.parseBool) ?? false
+                let artworkPath: String? = value("artwork").flatMap { $0.hasPrefix("/") ? $0 : nil }
+                let localFile: String? = value("file").flatMap { $0.hasPrefix("/") ? $0 : nil }
+                let localFilePlayer: String? = value("file_player").flatMap { $0.isEmpty ? nil : $0 }
+                let volumeValue: Int? = value("volume").flatMap(Int.init)
+                let volume: Int? = volumeValue.flatMap { (0...100).contains($0) ? $0 : nil }
                 self = .debug(.simulate(
-                    title: title, artist: value("artist") ?? "", album: value("album") ?? "",
-                    duration: seconds("duration").flatMap { $0 > 0 ? $0 : nil }, position: seconds("position") ?? 0,
-                    playing: value("playing").flatMap(Self.parseBool) ?? true, ad: value("ad").flatMap(Self.parseBool) ?? false,
-                    artworkPath: value("artwork").flatMap { $0.hasPrefix("/") ? $0 : nil },
-                    localFile: value("file").flatMap { $0.hasPrefix("/") ? $0 : nil },
-                    localFilePlayer: value("file_player").flatMap { $0.isEmpty ? nil : $0 },
-                    volume: value("volume").flatMap(Int.init).flatMap { (0...100).contains($0) ? $0 : nil }))
+                    title: title, artist: artist, album: album,
+                    duration: duration, position: position,
+                    playing: playing, ad: ad,
+                    artworkPath: artworkPath, localFile: localFile,
+                    localFilePlayer: localFilePlayer, volume: volume))
             }
         case ("debug", "/favorite"):
             self = .debug(.toggleFavorite)

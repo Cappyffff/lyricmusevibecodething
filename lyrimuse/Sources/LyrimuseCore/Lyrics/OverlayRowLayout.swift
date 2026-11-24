@@ -96,7 +96,7 @@ public enum OverlayRowLayout {
                 let tail = trailingWhitespace(of: g.words)
                 cursor = columnStart + columnWidth(main: wordsWidth, roma: romaWidth,
                                                    trailingSpace: tail.isEmpty ? 0 : measureMain(tail))
-                if !g.words.isEmpty { fills += ends[fills.count...].dropLast() + [cursor] }
+                if !g.words.isEmpty { fills += Array(ends[fills.count...].dropLast()) + [cursor] }
             }
         } else {
             cursor += place(words, from: cursor)

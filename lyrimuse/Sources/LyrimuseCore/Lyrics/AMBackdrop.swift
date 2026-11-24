@@ -54,8 +54,13 @@ public enum AMBackdrop {
                                    contrast k: Double = contrast) -> (rows: [[Double]], bias: Double) {
         let lw = [0.2126, 0.7152, 0.0722]
         let keep = 1 - whiteMix
-        let rows = (0..<3).map { r in
-            (0..<3).map { c in k * keep * darken * ((r == c ? saturation : 0) + (1 - saturation) * lw[c]) }
+        let gain: Double = k * keep * darken
+        let rows: [[Double]] = (0..<3).map { r in
+            (0..<3).map { c -> Double in
+                let diagonal: Double = r == c ? saturation : 0
+                let spill: Double = (1 - saturation) * lw[c]
+                return gain * (diagonal + spill)
+            }
         }
         return (rows, k * whiteMix + (1 - k) * contrastPivot)
     }
