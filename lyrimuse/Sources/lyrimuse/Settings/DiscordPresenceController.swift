@@ -654,12 +654,22 @@ final class DiscordPresenceController: ObservableObject {
             ? LXMusicOpenAPI.shared.currentState()
                 .flatMap { LXMusicOpenAPI.describes($0, title: source.title, artist: source.artist) ? LXMusicOpenAPI.ownCoverURL($0) : nil }
             : nil
-        let key = [reportedBundleID ?? "", webPlatform ?? "", source.artist, source.title, source.album,
-                   source.enrichContentVersion?.description ?? "",
-                   source.spotifyArtworkURL?.absoluteString ?? "", kasetCover?.absoluteString ?? "", kasetVideo ?? "",
-                   source.webPageArtworkURL?.absoluteString ?? "", videoFrame?.absoluteString ?? "",
-                   appleTrackID.map { String($0) } ?? "", relayBase, lxCover?.absoluteString ?? ""]
-            .joined(separator: "\n")
+        var keyParts: [String] = []
+        keyParts.append(reportedBundleID ?? "")
+        keyParts.append(webPlatform ?? "")
+        keyParts.append(source.artist)
+        keyParts.append(source.title)
+        keyParts.append(source.album)
+        keyParts.append(source.enrichContentVersion?.description ?? "")
+        keyParts.append(source.spotifyArtworkURL?.absoluteString ?? "")
+        keyParts.append(kasetCover?.absoluteString ?? "")
+        keyParts.append(kasetVideo ?? "")
+        keyParts.append(source.webPageArtworkURL?.absoluteString ?? "")
+        keyParts.append(videoFrame?.absoluteString ?? "")
+        keyParts.append(appleTrackID.map { String($0) } ?? "")
+        keyParts.append(relayBase)
+        keyParts.append(lxCover?.absoluteString ?? "")
+        let key = keyParts.joined(separator: "\n")
         if let extras, extras.key == key { return extras }
         let links = EnrichCacheReader.platformLinks(artist: source.artist, title: source.title, album: source.album)
         let song = links?.songWebLink(forPlayerBundleID: reportedBundleID, webPlatformID: webPlatform)

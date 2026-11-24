@@ -863,7 +863,9 @@ final class WebLyricsChromeLayer: CALayer {
                                           color: option.2 ? .white : ink, scale: s.scale)
             return (made, max(52, made?.size.width ?? 0) + 12)
         }
-        let total = 2 + cells.map(\.width).reduce(0, +) + CGFloat(max(0, cells.count - 1)) * 2 + 2
+        let cellsWidth: CGFloat = cells.map(\.width).reduce(0, +)
+        let gaps: CGFloat = CGFloat(max(0, cells.count - 1)) * 2
+        let total: CGFloat = 2 + cellsWidth + gaps + 2
         let track = CALayer()
         WebLyricsDraw.noActions([track])
         track.frame = CGRect(x: origin.x, y: origin.y, width: total, height: height)

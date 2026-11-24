@@ -2899,6 +2899,8 @@ private struct AppearanceSettingsTab: View {
                 case .touchBar: EmptyView()
                 // 歌词窗口是一扇按需打开的真窗口,不做编辑台也不钉预览:要看效果就把那扇窗开着调。
                 case .lyricsWindow: EmptyView()
+                // The constellation preview lives in the scrolling area with the rest of that section.
+                case .constellation: EmptyView()
                 }
             }
             .animation(.easeOut(duration: 0.18), value: sectionRaw)

@@ -128,6 +128,9 @@ struct NotchWindowRoot: View {
     }
 
     var body: some View {
+        // Read on the main actor before the keyframe closure, which is Sendable and may not touch the controller.
+        let revealOutline = controller.cardOutline
+        let revealShowsEdge = controller.showsCardEdge
         // prompt 只有真窗口传 `.shared`(「发现新播放器」提示);编辑台预览拿默认的惰性替身。广告门槛轮询也只有真窗口登记。
         // 「按宽度断句」的宽度只让主实例报:副本在别的屏上卡片宽可能不同,几份会互相覆盖,副本拆掉后也撤不回。
         // 别写成跟 `NotchLyricsWindowController.shared` 比身份:这个视图在 `.shared` 自己的 init 里就会求值,回头读它是递归初始化,启动即崩。
@@ -160,8 +163,8 @@ struct NotchWindowRoot: View {
                     .environment(\.notchRevealContentOpacity, state.contentOpacity)
                     .modifier(NotchRevealClip(widthFraction: state.widthFraction,
                                               heightFraction: state.heightFraction,
-                                              outline: controller.cardOutline,
-                                              showsEdge: controller.showsCardEdge))
+                                              outline: revealOutline,
+                                              showsEdge: revealShowsEdge))
             } keyframes: { _ in
                 KeyframeTrack(\.widthFraction) {
                     MoveKeyframe(revealStartWidth)

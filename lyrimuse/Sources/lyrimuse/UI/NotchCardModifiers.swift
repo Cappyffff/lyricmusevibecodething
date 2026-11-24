@@ -165,7 +165,7 @@ extension Path {
         let a0 = start.radians, a1 = end.radians
         let n = ArcFlattening.segments(radius: radius, sweep: CGFloat(a1 - a0))
         for k in 0...n {
-            let a = a0 + (a1 - a0) * Double(k) / Double(n)
+            let a: CGFloat = CGFloat(a0 + (a1 - a0) * Double(k) / Double(n))
             let point = CGPoint(x: center.x + radius * cos(a), y: center.y + radius * sin(a))
             if k == 0, isEmpty { move(to: point) } else { addLine(to: point) }
         }
