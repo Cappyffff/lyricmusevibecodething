@@ -102,7 +102,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     @Published private(set) var clockRunning = false
     @Published private(set) var accent: Color?
     /// Cover-art colours for the border gradient.
-    @Published private(set) var palette: [Color] = []
+    @Published private(set) var palette: [ConstellationSwatch] = []
     /// Real band levels; empty means no audio is being followed and the border breathes on its own.
     @Published private(set) var levels: [Double] = []
 
@@ -148,7 +148,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
     }
 
     /// Cover art down to 24x24, then the dominant hues out of it.
-    private static func paletteColors(from image: NSImage?) -> [Color] {
+    private static func paletteColors(from image: NSImage?) -> [ConstellationSwatch] {
         guard let image, let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return [] }
         let side = 24
         let space = CGColorSpaceCreateDeviceRGB()
@@ -160,8 +160,7 @@ final class ConstellationFeed: ObservableObject, RealAudioListener {
         let bytes = raw.bindMemory(to: UInt8.self, capacity: side * side * 4)
         let pixels = [UInt8](UnsafeBufferPointer(start: bytes, count: side * side * 4))
         let swatches = ConstellationPalette.swatches(premultipliedRGBA: pixels)
-        guard swatches.count >= 2 else { return [] }
-        return swatches.map { Color(red: $0.red, green: $0.green, blue: $0.blue) }
+        return swatches.count >= 2 ? swatches : []
     }
 
     /// One constellation spans several lines: words pile up until the run is full, then it clears and

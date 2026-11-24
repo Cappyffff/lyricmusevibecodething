@@ -3,8 +3,8 @@ import LyrimuseCore
 import SwiftUI
 
 enum ConstellationStyle {
-    static let backgroundCenter = Color(red: 0.075, green: 0.06, blue: 0.17)
-    static let backgroundEdge = Color(red: 0.012, green: 0.012, blue: 0.032)
+    static let backgroundCenter = Color(red: 0.045, green: 0.035, blue: 0.105)
+    static let backgroundEdge = Color(red: 0.006, green: 0.006, blue: 0.019)
     static let line = Color.white.opacity(0.42)
     static let activeText = Color.white
     static let activeFontSize: CGFloat = 34
@@ -26,7 +26,7 @@ struct ConstellationView: View {
     let paused: Bool
     var levels: [Double] = []
     var accent: Color?
-    var palette: [Color] = []
+    var palette: [ConstellationSwatch] = []
     var borderEnabled = true
 
     @State private var points: [CGPoint] = []
@@ -206,16 +206,34 @@ struct ConstellationView: View {
     }
 
     /// Colours taken from the cover art, walked around the loop so the ring is not one flat tint.
-    private func borderStops() -> [Color] {
+    private func borderStops() -> [ConstellationSwatch] {
         if palette.count >= 2 { return palette }
-        if let accent { return [accent, accent] }
-        return [ConstellationStyle.borderFallback, ConstellationStyle.borderFallback]
+        if let accent {
+            let parts = NSColor(accent).usingColorSpace(.sRGB)
+            let red = Double(parts?.redComponent ?? 1)
+            let green = Double(parts?.greenComponent ?? 0.45)
+            let blue = Double(parts?.blueComponent ?? 0.22)
+            let one = ConstellationSwatch(red: red, green: green, blue: blue, hue: 0)
+            return [one, one]
+        }
+        let fallback = ConstellationSwatch(red: 0.98, green: 0.45, blue: 0.22, hue: 0)
+        return [fallback, fallback]
     }
 
-    private func borderColour(at loop: Double, stops: [Color]) -> Color {
-        guard stops.count > 1 else { return stops.first ?? ConstellationStyle.borderFallback }
+    /// Blends between neighbouring stops and wraps back to the first, so the ring has no seam and
+    /// no hard edge where one cover colour gives way to the next.
+    private func borderColour(at loop: Double, stops: [ConstellationSwatch]) -> Color {
+        guard let first = stops.first else { return ConstellationStyle.borderFallback }
+        guard stops.count > 1 else { return Color(red: first.red, green: first.green, blue: first.blue) }
         let scaled = loop * Double(stops.count)
-        return stops[min(stops.count - 1, max(0, Int(scaled)))]
+        let index = min(stops.count - 1, max(0, Int(scaled)))
+        let next = stops[(index + 1) % stops.count]
+        let here = stops[index]
+        let blend = min(1, max(0, scaled - Double(index)))
+        let eased = blend * blend * (3 - 2 * blend)
+        return Color(red: here.red + (next.red - here.red) * eased,
+                     green: here.green + (next.green - here.green) * eased,
+                     blue: here.blue + (next.blue - here.blue) * eased)
     }
 
     private func drawPlainFallback(in context: inout GraphicsContext, size: CGSize) {
