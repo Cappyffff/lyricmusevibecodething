@@ -203,7 +203,9 @@ func runWebLyricsTests() {
         var latency = WebLyricsRateControl()
         latency.noteSent(stamp: 990, bytes: 100, at: 1.0)
         _ = latency.noteFeedback(WebLyricsFeedback(stamp: 990, receivedBytes: 100, sinceArrival: 0, delay: 0.3), at: 1.04)
-        expectEqual(abs((latency.displayLatency ?? 0) - (0.01 + 0.02 + 0.3 + 1.0 / 120)) < 0.0001, true,
+        let expectedLatency: Double = 0.01 + 0.02 + 0.3 + 1.0 / 120
+        let shownLatency: Double = latency.displayLatency ?? 0
+        expectEqual(abs(shownLatency - expectedLatency) < 0.0001, true,
                     "网页歌词提前画: 从画到上屏 = 交出前的耗时 + 往返的一半 + 网页的放帧余量 + 半个刷新间隔(\(latency.displayLatency ?? -1))")
         var noDelay = WebLyricsRateControl()
         noDelay.noteSent(stamp: 990, bytes: 100, at: 1.0)
@@ -216,9 +218,11 @@ func runWebLyricsTests() {
                                           rate: rate).map { [$0.from, $0.to] }
         }
         // 上一次提交在 100.0s、位置 10.000s;此刻 100.4s 发现停了,实际停在 10.100s(照原样该到 10.400s,晚发现了 300ms)
-        expectEqual(cutWindow(position: 10_100, playing: false), [100_400 - 800 - 300 - 200, 100_400],
+        let pausedFrom: Double = 100_400 - 800 - 300 - 200
+        expectEqual(cutWindow(position: 10_100, playing: false), [pausedFrom, 100_400],
                     "网页歌词提前画: 暂停时丢掉押过头的帧,起点按晚发现的那一截再往前挪,再多留 200ms")
-        expectEqual(cutWindow(position: 40_000, playing: true), [100_000 - 800 - 200, 100_400],
+        let seekFrom: Double = 100_000 - 800 - 200
+        expectEqual(cutWindow(position: 40_000, playing: true), [seekFrom, 100_400],
                     "网页歌词提前画: 跳转也算押错,起点取上一次提交的时刻")
         expectEqual(cutWindow(position: 10_550, playing: true), nil, "网页歌词提前画: 锚点小幅校正不算跳转")
         expectEqual(cutWindow(position: 10_800, playing: true, rate: 2), nil, "网页歌词提前画: 按播放速率外推")

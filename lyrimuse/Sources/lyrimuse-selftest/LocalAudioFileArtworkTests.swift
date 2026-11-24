@@ -39,7 +39,7 @@ func checkLocalAudioFileArtwork() {
     // ---- MP3:ID3v2 ----
     func apic(_ picture: [UInt8], type: UInt8, encoding: UInt8 = 0, description: [UInt8] = Array("Cover".utf8)) -> [UInt8] {
         let terminator: [UInt8] = encoding == 1 || encoding == 2 ? [0, 0] : [0]
-        return [encoding] + Array("image/png".utf8) + [0, type] + description + terminator + picture
+        return cat([encoding], Array("image/png".utf8), [0, type], description, terminator, picture)
     }
     func frame23(_ id: String, _ body: [UInt8], format: UInt8 = 0) -> [UInt8] {
         Array(id.utf8) + bigEndian(body.count, 4) + [0, format] + body
@@ -56,8 +56,8 @@ func checkLocalAudioFileArtwork() {
     expectEqual(id3(header(3, size: v23.count), v23), blue, "嵌入封面 MP3: v2.3 两张取正面封面")
     let utf16 = title + frame23("APIC", apic(red, type: 3, encoding: 1, description: [0xFF, 0xFE, 0x01, 0x5C, 0x62, 0x97]))
     expectEqual(id3(header(3, size: utf16.count), utf16), red, "嵌入封面 MP3: UTF-16 描述按两个 0 结尾")
-    let v22 = Array("TT2".utf8) + bigEndian(5, 3) + [0] + Array("Song".utf8)
-        + Array("PIC".utf8) + bigEndian(6 + red.count, 3) + [0] + Array("PNG".utf8) + [3, 0] + red
+    let v22 = cat(Array("TT2".utf8), bigEndian(5, 3), [0], Array("Song".utf8),
+                  Array("PIC".utf8), bigEndian(6 + red.count, 3), [0], Array("PNG".utf8), [3, 0], red)
     expectEqual(id3(header(2, size: v22.count), v22), red, "嵌入封面 MP3: v2.2 的 PIC")
     let jpegAPIC = apic(jpeg, type: 3), unsynced = unsynchronized(jpegAPIC)
     expectEqual(unsynced.count > jpegAPIC.count, true, "嵌入封面 MP3: 反同步真的插了字节")
@@ -103,8 +103,9 @@ func checkLocalAudioFileArtwork() {
     // ---- FLAC:PICTURE 块 ----
     func pictureBlock(_ picture: [UInt8], type: UInt32) -> [UInt8] {
         let mime = Array("image/png".utf8), description = Array("front".utf8)
-        return bigEndian(Int(type), 4) + bigEndian(mime.count, 4) + mime + bigEndian(description.count, 4) + description
-            + Array(repeating: 0, count: 16) + bigEndian(picture.count, 4) + picture
+        return cat(bigEndian(Int(type), 4), bigEndian(mime.count, 4), mime,
+                   bigEndian(description.count, 4), description,
+                   Array(repeating: 0, count: 16), bigEndian(picture.count, 4), picture)
     }
     expectEqual(A.flacPictureBlock(pictureBlock(red, type: 3)[...]).map { [$0.type: Array($0.data)] }, [3: red],
                 "嵌入封面 FLAC: 解 PICTURE 块")
@@ -144,7 +145,9 @@ func checkLocalAudioFileArtwork() {
     let mp3 = write("song.mp3", header(3, size: v23.count) + v23 + mpegFrames)
     expectEqual(read(mp3), blue, "嵌入封面 文件: MP3")
     expectEqual(A.read(path: mp3)?.mimeType, "image/png", "嵌入封面 文件: 类型按图头认")
-    let mp3Footer = write("footer.mp3", header(4, size: v24.count, flags: 0x10) + v24 + Array("3DI".utf8) + [4, 0, 0x10] + syncsafe(v24.count) + mpegFrames)
+    let footerTag = cat(header(4, size: v24.count, flags: 0x10), v24, Array("3DI".utf8),
+                        [4, 0, 0x10], syncsafe(v24.count), mpegFrames)
+    let mp3Footer = write("footer.mp3", footerTag)
     expectEqual(read(mp3Footer), jpeg, "嵌入封面 文件: v2.4 带尾部标签")
     expectEqual(A.read(path: write("bare.mp3", mpegFrames)) == nil, true, "嵌入封面 文件: MP3 没有标签")
     expectEqual(A.read(path: write("corrupt.mp3", header(3, size: corrupt.count) + corrupt + mpegFrames)) == nil, true,
@@ -163,8 +166,8 @@ func checkLocalAudioFileArtwork() {
                            + metadataBlock(6, pictureBlock(red, type: 3), last: true))), red,
                 "两个 ID3 标签: 后面接着 FLAC")
     let tailBody = frame24("TIT2", [0] + Array("Song".utf8)) + frame24("APIC", apic(red, type: 3))
-    let tailTag = Array("ID3".utf8) + [4, 0, 0x10] + syncsafe(tailBody.count) + tailBody
-        + Array("3DI".utf8) + [4, 0, 0x10] + syncsafe(tailBody.count)
+    let tailTag = cat(Array("ID3".utf8), [4, 0, 0x10], syncsafe(tailBody.count), tailBody,
+                      Array("3DI".utf8), [4, 0, 0x10], syncsafe(tailBody.count))
     expectEqual(read(write("tail.mp3", mpegFrames + tailTag)), red, "尾部 ID3: 只在文件尾、带 3DI 尾标")
     let v1 = Array("TAG".utf8) + Array(repeating: 0x20, count: 124) + [0xFF]
     expectEqual(read(write("tail-v1.mp3", mpegFrames + tailTag + v1)), red, "尾部 ID3: 后面还挂着 128 字节的 ID3v1")
@@ -318,8 +321,8 @@ private func testImage(red: UInt8, type: UTType) -> [UInt8] {
 private func oggOpus(picture: [UInt8]?) -> [UInt8] {
     func page(_ packet: [UInt8], sequence: UInt32, flags: UInt8, granule: UInt64) -> [UInt8] {
         let lacing = Array(repeating: UInt8(255), count: packet.count / 255) + [UInt8(packet.count % 255)]
-        var out = Array("OggS".utf8) + [0, flags] + littleEndian(granule, 8) + littleEndian(1234, 4)
-            + littleEndian(UInt64(sequence), 4) + [0, 0, 0, 0] + [UInt8(lacing.count)] + lacing + packet
+        var out = cat(Array("OggS".utf8), [0, flags], littleEndian(granule, 8), littleEndian(1234, 4),
+                      littleEndian(UInt64(sequence), 4), [0, 0, 0, 0], [UInt8(lacing.count)], lacing, packet)
         var crc: UInt32 = 0
         for byte in out {
             crc ^= UInt32(byte) << 24
@@ -331,11 +334,16 @@ private func oggOpus(picture: [UInt8]?) -> [UInt8] {
     let head = Array("OpusHead".utf8) + [1, 1] + littleEndian(312, 2) + littleEndian(48000, 4) + [0, 0, 0]
     let comments = picture.map { [Array("METADATA_BLOCK_PICTURE=".utf8) + Array(Data($0).base64EncodedString().utf8)] }
         ?? [Array("TITLE=Song".utf8)]
-    let tags = Array("OpusTags".utf8) + littleEndian(4, 4) + Array("test".utf8) + littleEndian(UInt64(comments.count), 4)
-        + comments.flatMap { littleEndian(UInt64($0.count), 4) + $0 }
+    var body: [UInt8] = []
+    for comment in comments { body += cat(littleEndian(UInt64(comment.count), 4), comment) }
+    let tags = cat(Array("OpusTags".utf8), littleEndian(4, 4), Array("test".utf8),
+                   littleEndian(UInt64(comments.count), 4), body)
     return page(head, sequence: 0, flags: 2, granule: 0) + page(tags, sequence: 1, flags: 0, granule: 0)
         + page([0xF8, 0xFF, 0xFE], sequence: 2, flags: 4, granule: 960 + 312)
 }
+
+/// 一串字节首尾相接。长链的 `+` 在更严的工具链上会把类型检查拖垮,参数类型定死就没有重载可搜。
+private func cat(_ parts: [UInt8]...) -> [UInt8] { parts.flatMap { $0 } }
 
 private func littleEndian(_ value: UInt64, _ count: Int) -> [UInt8] {
     (0..<count).map { UInt8((value >> ($0 * 8)) & 0xFF) }
