@@ -31,7 +31,7 @@ public enum QQMotionCover {
         let sorted = widths.sorted { $0.value < $1.value }
         let wide = sorted.filter { $0.value >= targetWidth }.map(\.key)
         let narrow = sorted.filter { $0.value < targetWidth }.reversed().map(\.key)
-        return Array(wide.prefix(1)) + narrow + wide.dropFirst()
+        return Array(wide.prefix(1)) + narrow + Array(wide.dropFirst())
     }
 
     /// 应答 → 按 `preferenceOrder` 排好的 mp4 地址(一律 https)。顶层或 `req` 的 code 不是 0、形状不对为 nil(没问成);
