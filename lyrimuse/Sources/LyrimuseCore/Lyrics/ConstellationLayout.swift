@@ -132,6 +132,9 @@ public enum ConstellationLayout {
                               shortest: CGFloat, longest: CGFloat) -> (point: CGPoint, heading: CGFloat)? {
         var best: (point: CGPoint, heading: CGFloat, clearance: CGFloat)?
         let steps: [CGFloat] = [longest, (shortest + longest) / 2, shortest]
+        // `CGRect.contains` 右下两边是开区间,夹到 maxX / maxY 上的点会被判成出界。
+        let limitX: CGFloat = inner.maxX.nextDown
+        let limitY: CGFloat = inner.maxY.nextDown
         for turnIndex in 0..<48 {
             let candidateHeading = heading + CGFloat(turnIndex) * (2 * .pi / 48)
             for step in steps {
@@ -139,8 +142,8 @@ public enum ConstellationLayout {
                 let dy: CGFloat = sin(candidateHeading) * step
                 let rawX: CGFloat = previous.x + dx
                 let rawY: CGFloat = previous.y + dy
-                let candidate = CGPoint(x: min(max(rawX, inner.minX), inner.maxX),
-                                        y: min(max(rawY, inner.minY), inner.maxY))
+                let candidate = CGPoint(x: min(max(rawX, inner.minX), limitX),
+                                        y: min(max(rawY, inner.minY), limitY))
                 let room = clearance(of: candidate, from: placed)
                 if let current = best, room <= current.clearance { continue }
                 best = (candidate, candidateHeading, room)
