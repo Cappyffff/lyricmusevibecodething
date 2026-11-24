@@ -5,7 +5,58 @@ import LyrimuseCore
 func runConstellationTests() {
     checkConstellationLayout()
     checkConstellationReveal()
+    checkConstellationBorder()
     checkConstellationWiring()
+}
+
+private func checkConstellationBorder() {
+    print("\n== 星座:边框跟着音乐 ==")
+    typealias B = ConstellationBorder
+
+    let loud: [Double] = [1, 1, 1, 1, 1]
+    let quiet: [Double] = [0, 0, 0, 0, 0]
+    expectEqual(B.profile(samples: 8, nowSeconds: 3.3, levels: quiet).allSatisfy { $0 == B.baseThickness }, true,
+                "星座边框: 一点声音都没有时是一条等宽的边")
+    expectEqual(B.profile(samples: 12, nowSeconds: 0, levels: []).count, 13, "星座边框: 采样点比段数多一个")
+    expectEqual(B.profile(samples: 0, nowSeconds: 0, levels: loud), [], "星座边框: 不采样就没有点")
+
+    var outOfRange: [String] = []
+    let messy: [[Double]] = [[], [0.5], loud, quiet, [-4, 9, .nan, .infinity, 0.3], [0.2, 0.9, 0.1]]
+    for levels in messy {
+        for tick in 0..<240 {
+            let seconds: Double = Double(tick) * 0.37 - 20
+            for step in 0...24 {
+                let u: Double = Double(step) / 24
+                let value = B.thickness(at: u, nowSeconds: seconds, levels: levels)
+                if !(value >= B.minimumThickness && value <= B.maximumThickness) {
+                    outOfRange.append("\(levels.count) 段 t=\(seconds) u=\(u):\(value)")
+                }
+            }
+        }
+    }
+    expectEqual(outOfRange.first, nil, "星座边框: 再离谱的电平也夹在最薄与最厚之间")
+
+    expectEqual(B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
+                B.thickness(at: 0.3, nowSeconds: 7, levels: loud),
+                "星座边框: 同一刻同一处算出来一样厚")
+
+    func meanThickness(_ energy: Double) -> CGFloat {
+        let levels = [Double](repeating: energy, count: RealAudioSpectrum.bandCount)
+        let profile = B.profile(samples: 400, nowSeconds: 12.5, levels: levels)
+        return profile.reduce(0, +) / CGFloat(profile.count)
+    }
+    let steps: [CGFloat] = [0, 0.25, 0.5, 0.75, 1].map(meanThickness)
+    expectEqual(zip(steps, steps.dropFirst()).allSatisfy { $0 < $1 }, true, "星座边框: 越响整条边越厚")
+
+    let still = B.profile(samples: 48, nowSeconds: 4, levels: loud)
+    let later = B.profile(samples: 48, nowSeconds: 4.5, levels: loud)
+    expectEqual(still == later, false, "星座边框: 波形随时间走,不是钉死的")
+
+    let idle = B.idleLevels(nowSeconds: 9)
+    expectEqual(idle.count, RealAudioSpectrum.bandCount, "星座边框: 没有真实电平时也给满五段")
+    expectEqual(idle.allSatisfy { $0 >= 0 && $0 <= 1 }, true, "星座边框: 呼吸的电平也在 0…1 之内")
+    expectEqual(B.idleLevels(nowSeconds: 9) == B.idleLevels(nowSeconds: 14), false,
+                "星座边框: 没有音频时边框照样在动")
 }
 
 private func minimumDistance(_ points: [CGPoint]) -> CGFloat {
@@ -176,12 +227,23 @@ private func checkConstellationWiring() {
                 && controller.contains("constellationOpen: hiddenForConstellation"), true,
                 "星座接线: 悬浮窗订阅星座窗口开关,并把它喂给显示判定")
 
-    let window = source("lyrimuse/UI/ConstellationWindow.swift")
     expectEqual(window.contains("let wanted: NSWindow.CollectionBehavior = [.fullScreenPrimary]")
                 && window.contains("NSWindow.didUpdateNotification"), true,
                 "星座窗口: 绿键要显示成全屏箭头,collectionBehavior 每个更新周期都补一次")
     expectEqual(window.contains("window.toggleFullScreen(nil)"), true,
                 "星座窗口: 打开时进原生全屏(自己的 Space)")
+
+    let window = source("lyrimuse/UI/ConstellationWindow.swift")
+    expectEqual(window.contains("RealAudioMeter.shared.setListening(self, follow, ignoresSetting: true)"), true,
+                "星座边框: 窗口开着时自己去要真实电平,不看灵动岛那个开关")
+    expectEqual(window.contains("coordinator.$artworkAccentColor"), true,
+                "星座边框: 颜色跟着封面主色走")
+    expectEqual(window.contains("let wanted = windowOpen && borderEnabled"), true,
+                "星座边框: 关掉边框就不再读音频")
+    expectEqual(source("lyrimuse/SettingsView.swift").contains("isOn: $settings.constellationBorder"), true,
+                "星座边框: 「星座」那一段有独立开关")
+    expectEqual(source("lyrimuse/UI/ConstellationView.swift").contains("guard borderEnabled,"), true,
+                "星座边框: 关掉就不画")
 
     let scenes = source("lyrimuse/App.swift")
     expectEqual(scenes.contains("id: ConstellationWindowID.scene"), true, "星座窗口: 场景挂在 App 的场景树上")

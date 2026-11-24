@@ -131,7 +131,7 @@ private struct EqualizerBarsLayer: NSViewRepresentable {
 /// 五根条子各一个纯色图层,圆角 = 半个条宽(胶囊);高度动画以中线为轴上下对称伸缩
 /// (`anchorPoint` 在中心,只动 `bounds.size.height`)。
 @MainActor
-final class EqualizerBarsNSView: NSView {
+final class EqualizerBarsNSView: NSView, RealAudioListener {
     private static let animationKey = "lyrimuse.equalizer-bars"
     /// 跟随真实音频时每一帧之间的补间(一帧 1/30 秒)。
     private static let liveAnimationKey = "lyrimuse.equalizer-bars.live"

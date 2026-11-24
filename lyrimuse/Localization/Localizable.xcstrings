@@ -311438,6 +311438,208 @@
           }
         }
       }
+    },
+    "动态边框" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamischer Rahmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dynamic border"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borde dinámico"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bordure dynamique"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डायनामिक बॉर्डर"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bordo dinamico"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダイナミックボーダー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다이내믹 테두리"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borda dinâmica"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Динамическая рамка"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ขอบแบบไดนามิก"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinamik kenarlık"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Динамічна рамка"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viền động"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动态边框"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動態邊框"
+          }
+        }
+      }
+    },
+    "屏幕四边一圈光，跟着音乐起伏，颜色取自封面" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Lichtsaum an allen vier Rändern, der sich mit der Musik hebt und senkt, eingefärbt vom Cover"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A ring of light around all four edges that swells with the music, tinted from the cover art"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un halo de luz en los cuatro bordes que ondula con la música, con el color de la portada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un halo lumineux sur les quatre bords qui ondule avec la musique, teinté par la pochette"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्क्रीन के चारों किनारों पर रोशनी की एक परत, जो संगीत के साथ लहराती है और रंग कवर से लेती है"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un alone di luce sui quattro bordi che ondeggia con la musica, con il colore della copertina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面の四辺を縁取る光が音楽に合わせて揺れ、色はカバーアートから取ります"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면 네 가장자리를 두르는 빛이 음악에 따라 일렁이고, 색은 커버 아트에서 가져옵니다"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Um halo de luz nas quatro bordas que ondula com a música, tingido pela capa"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Световая кайма по всем четырём краям колышется в такт музыке, цвет берётся с обложки"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "แสงล้อมรอบทั้งสี่ขอบจอ ขยับตามจังหวะเพลง สีมาจากปกอัลบั้ม"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dört kenarı saran, müzikle birlikte dalgalanan ve rengini kapaktan alan bir ışık halkası"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Світлова облямівка по всіх чотирьох краях коливається в такт музиці, колір береться з обкладинки"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Một vòng sáng quanh bốn cạnh màn hình, phập phồng theo nhạc, màu lấy từ ảnh bìa"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕四边一圈光，跟着音乐起伏，颜色取自封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "螢幕四邊一圈光，跟著音樂起伏，顏色取自封面"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

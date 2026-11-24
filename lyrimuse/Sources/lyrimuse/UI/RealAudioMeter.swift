@@ -11,6 +11,13 @@ import os
 /// 读的是此刻那个播放器的进程(`ProcessAudioTap`,macOS 14.2+);换了播放器就换 tap,没人要了过几秒拆掉。
 /// 读不到(没授权、播放器不在本机出声、系统太旧)时各音浪照旧走歌词时间轴那套(`EqualizerBarCurve`),判据在
 /// `RealAudioLevelGate`。只读频段能量,采样不出内存、不写盘。见 05 章决策 146。
+/// 要真实电平的那一方。音浪是其中一个,星座窗口的边框是另一个。
+@MainActor
+protocol RealAudioListener: AnyObject {
+    func realAudioModeChanged(live: Bool)
+    func applyRealLevels(_ levels: [Double])
+}
+
 @MainActor
 final class RealAudioMeter: ObservableObject {
     static let shared = RealAudioMeter()
@@ -29,8 +36,12 @@ final class RealAudioMeter: ObservableObject {
     private(set) var isLive = false
     private(set) var lastLevels: [Double] = []
 
-    private struct WeakBars { weak var view: EqualizerBarsNSView? }
-    private var listeners: [ObjectIdentifier: WeakBars] = [:]
+    private struct WeakListener {
+        weak var target: (any RealAudioListener)?
+        /// 这一方不看灵动岛那个开关(星座窗口开着就要读)。
+        var ignoresSetting: Bool
+    }
+    private var listeners: [ObjectIdentifier: WeakListener] = [:]
     private var bundleTimer: Timer?
     private var wantedBundleID: String?
     private var settingsSubscription: AnyCancellable?
@@ -52,11 +63,11 @@ final class RealAudioMeter: ObservableObject {
     }
 
     /// 一扇音浪要不要真实电平。音浪在播、在窗口里、开关开着时登记,否则撤销。
-    func setListening(_ view: EqualizerBarsNSView, _ listening: Bool) {
-        let key = ObjectIdentifier(view)
+    func setListening(_ listener: any RealAudioListener, _ listening: Bool, ignoresSetting: Bool = false) {
+        let key = ObjectIdentifier(listener)
         if listening {
-            listeners[key] = WeakBars(view: view)
-            if isLive { view.realAudioModeChanged(live: true) }
+            listeners[key] = WeakListener(target: listener, ignoresSetting: ignoresSetting)
+            if isLive { listener.realAudioModeChanged(live: true) }
         } else {
             listeners[key] = nil
         }
@@ -65,8 +76,10 @@ final class RealAudioMeter: ObservableObject {
 
     /// `followsAudio` 给了就用它(设置订阅里 @Published 还没写进去),没给就现读设置。
     private func refreshDemand(followsAudio: Bool? = nil) {
-        listeners = listeners.filter { $0.value.view != nil }
-        let follows = followsAudio ?? AppSettings.shared.notchEqualizerFollowsAudio
+        listeners = listeners.filter { $0.value.target != nil }
+        let setting = followsAudio ?? AppSettings.shared.notchEqualizerFollowsAudio
+        let demanded = listeners.values.contains { $0.ignoresSetting }
+        let follows = setting || demanded
         let wanted = follows && Self.isSupported && !listeners.isEmpty
         if wanted {
             if bundleTimer == nil {
@@ -99,17 +112,17 @@ final class RealAudioMeter: ObservableObject {
         if update.live != isLive {
             isLive = update.live
             Self.logger.info("real-audio: live=\(update.live, privacy: .public) bundle=\(self.wantedBundleID ?? "", privacy: .public)")
-            for entry in listeners.values { entry.view?.realAudioModeChanged(live: update.live) }
+            for entry in listeners.values { entry.target?.realAudioModeChanged(live: update.live) }
         }
         guard update.live, let levels = update.levels else { return }
         lastLevels = levels
-        for entry in listeners.values { entry.view?.applyRealLevels(levels) }
+        for entry in listeners.values { entry.target?.applyRealLevels(levels) }
     }
 
     /// `debug/state` 里的那一段。
     var debugState: [String: Any] {
         ["enabled": AppSettings.shared.notchEqualizerFollowsAudio, "supported": Self.isSupported,
-         "listeners": listeners.values.filter { $0.view != nil }.count, "bundle": wantedBundleID ?? "",
+         "listeners": listeners.values.filter { $0.target != nil }.count, "bundle": wantedBundleID ?? "",
          "live": isLive, "likelyDenied": likelyDenied,
          "levels": lastLevels.map { ($0 * 1000).rounded() / 1000 },
          "engine": engine.debugState()]

@@ -734,6 +734,7 @@
 "加载更早的记录" = "Ältere laden";
 "动态封面" = "Animiertes Cover";
 "动态封面缓存" = "Cache für animierte Cover";
+"动态边框" = "Dynamischer Rahmen";
 "勾选后需退出并重新打开浏览器才能生效，此选项仅在浏览器启动时读取" = "Beende den Browser nach dem Aktivieren und öffne ihn erneut. Die Option wird nur beim Start des Browsers gelesen";
 "勾选的播放器全部退出 5 秒后，Lyrimuse 随之退出；期间如有播放器重新打开则取消。设置、歌词管理或歌词窗口打开时，会等其关闭后再退出" = "Sobald alle ausgewählten Player beendet sind, beendet sich Lyrimuse nach 5 Sekunden; öffnet sich einer davon in der Zwischenzeit, wird das abgebrochen. Sind Einstellungen, Liedtext-Verwaltung oder Liedtextfenster offen, wartet Lyrimuse, bis sie geschlossen sind";
 "勾选的文件存入导入库，播放到对应歌曲时使用" = "Markierte Dateien werden in der Import-Bibliothek gespeichert und beim Abspielen des passenden Titels verwendet";
@@ -1104,6 +1105,7 @@
 "局域网" = "Lokales Netzwerk";
 "居中" = "Mitte";
 "屏幕" = "Display";
+"屏幕四边一圈光，跟着音乐起伏，颜色取自封面" = "Ein Lichtsaum an allen vier Rändern, der sich mit der Musik hebt und senkt, eingefärbt vom Cover";
 "展开" = "Ausklappen";
 "展开/收起触控栏歌词" = "Touch Bar-Liedtext ein-/ausklappen";
 "展开圆角" = "Ecken ausgeklappt";

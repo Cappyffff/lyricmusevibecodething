@@ -15,6 +15,8 @@ enum ConstellationStyle {
     static let labelGap: CGFloat = 14
     static let dustCount = 90
     static let starWaist: CGFloat = 0.17
+    static let borderFallback = Color(red: 0.98, green: 0.45, blue: 0.22)
+    static let borderSamples = 72
 }
 
 struct ConstellationView: View {
@@ -23,6 +25,9 @@ struct ConstellationView: View {
     let plainText: String?
     let nowMs: () -> Int
     let paused: Bool
+    var levels: [Double] = []
+    var accent: Color?
+    var borderEnabled = true
 
     @State private var points: [CGPoint] = []
     @State private var dust: [ConstellationDust] = []
@@ -31,10 +36,11 @@ struct ConstellationView: View {
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            TimelineView(.animation(minimumInterval: nil, paused: paused)) { _ in
+            TimelineView(.animation(minimumInterval: nil, paused: paused)) { timeline in
                 let now = nowMs()
+                let seconds = timeline.date.timeIntervalSinceReferenceDate
                 Canvas(opaque: true, colorMode: .nonLinear, rendersAsynchronously: false) { context, _ in
-                    draw(in: &context, size: size, nowMs: now)
+                    draw(in: &context, size: size, nowMs: now, seconds: seconds)
                 }
             }
             .onAppear { layOut(in: size) }
@@ -73,8 +79,9 @@ struct ConstellationView: View {
                                    canvas: ConstellationLayout.Canvas(size: size))
     }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize, nowMs: Int) {
+    private func draw(in context: inout GraphicsContext, size: CGSize, nowMs: Int, seconds: Double) {
         drawBackdrop(in: &context, size: size)
+        drawBorder(in: &context, size: size, seconds: seconds)
         guard !words.isEmpty else {
             drawPlainFallback(in: &context, size: size)
             return
@@ -113,6 +120,58 @@ struct ConstellationView: View {
             let box = CGRect(x: grain.point.x - radius, y: grain.point.y - radius,
                              width: radius * 2, height: radius * 2)
             context.fill(Path(ellipseIn: box), with: .color(.white.opacity(grain.opacity)))
+        }
+    }
+
+    private func drawBorder(in context: inout GraphicsContext, size: CGSize, seconds: Double) {
+        guard borderEnabled, size.width > 0, size.height > 0 else { return }
+        let beat: [Double] = levels.isEmpty ? ConstellationBorder.idleLevels(nowSeconds: seconds) : levels
+        let profile = ConstellationBorder.profile(samples: ConstellationStyle.borderSamples,
+                                                  nowSeconds: seconds, levels: beat)
+        guard profile.count > 1 else { return }
+        let tint: Color = accent ?? ConstellationStyle.borderFallback
+        let reach: CGFloat = ConstellationBorder.maximumThickness
+        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .top)
+        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .bottom)
+        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .leading)
+        drawEdge(in: &context, profile: profile, size: size, tint: tint, reach: reach, edge: .trailing)
+    }
+
+    private enum BorderEdge { case top, bottom, leading, trailing }
+
+    private func drawEdge(in context: inout GraphicsContext, profile: [CGFloat], size: CGSize,
+                          tint: Color, reach: CGFloat, edge: BorderEdge) {
+        let steps = profile.count - 1
+        var path = Path()
+        for step in 0...steps {
+            let fraction: CGFloat = CGFloat(step) / CGFloat(steps)
+            let point = borderPoint(edge: edge, fraction: fraction, depth: 0, size: size)
+            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        for step in stride(from: steps, through: 0, by: -1) {
+            let fraction: CGFloat = CGFloat(step) / CGFloat(steps)
+            let point = borderPoint(edge: edge, fraction: fraction, depth: profile[step], size: size)
+            path.addLine(to: point)
+        }
+        path.closeSubpath()
+
+        let stops: [Gradient.Stop] = [
+            Gradient.Stop(color: tint.opacity(0.92), location: 0),
+            Gradient.Stop(color: tint.opacity(0.55), location: 0.16),
+            Gradient.Stop(color: tint.opacity(0.14), location: 0.52),
+            Gradient.Stop(color: tint.opacity(0), location: 1),
+        ]
+        let start = borderPoint(edge: edge, fraction: 0.5, depth: 0, size: size)
+        let end = borderPoint(edge: edge, fraction: 0.5, depth: reach, size: size)
+        context.fill(path, with: .linearGradient(Gradient(stops: stops), startPoint: start, endPoint: end))
+    }
+
+    private func borderPoint(edge: BorderEdge, fraction: CGFloat, depth: CGFloat, size: CGSize) -> CGPoint {
+        switch edge {
+        case .top: return CGPoint(x: size.width * fraction, y: depth)
+        case .bottom: return CGPoint(x: size.width * fraction, y: size.height - depth)
+        case .leading: return CGPoint(x: depth, y: size.height * fraction)
+        case .trailing: return CGPoint(x: size.width - depth, y: size.height * fraction)
         }
     }
 

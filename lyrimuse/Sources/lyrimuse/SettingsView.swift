@@ -4006,6 +4006,12 @@ private struct AppearanceSettingsTab: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    Toggle(L10n.t("动态边框"), isOn: $settings.constellationBorder)
+                        .padding(.top, 4)
+                    Text(L10n.t("屏幕四边一圈光，跟着音乐起伏，颜色取自封面"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     constellationOpenButton
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

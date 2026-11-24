@@ -94,13 +94,20 @@ final class ConstellationWindowController: ObservableObject {
 }
 
 @MainActor
-final class ConstellationFeed: ObservableObject {
+final class ConstellationFeed: ObservableObject, RealAudioListener {
     @Published private(set) var lineKey = ""
     @Published private(set) var words: [SyncedLyricWord] = []
     @Published private(set) var plainText: String?
     @Published private(set) var clockRunning = false
+    @Published private(set) var accent: Color?
+    /// 真实频段电平;空 = 没在跟随音频,边框走自己的呼吸。
+    @Published private(set) var levels: [Double] = []
+
+    @Published private(set) var borderEnabled = AppSettings.shared.constellationBorder
 
     private var subscriptions: Set<AnyCancellable> = []
+    private var listening = false
+    private var windowOpen = false
 
     init(live: Bool = true) {
         guard live else { return }
@@ -118,6 +125,40 @@ final class ConstellationFeed: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] playing in self?.clockRunning = playing }
             .store(in: &subscriptions)
+        coordinator.$artworkAccentColor
+            .removeDuplicates()
+            .sink { [weak self] color in self?.accent = color }
+            .store(in: &subscriptions)
+        AppSettings.shared.$constellationBorder
+            .removeDuplicates()
+            .sink { [weak self] on in
+                guard let self else { return }
+                borderEnabled = on
+                syncAudio()
+            }
+            .store(in: &subscriptions)
+    }
+
+    /// 星座窗口开着、边框也开着时才读音频;设置页那份预览不读。
+    func followAudio(_ follow: Bool) {
+        windowOpen = follow
+        syncAudio()
+    }
+
+    private func syncAudio() {
+        let wanted = windowOpen && borderEnabled
+        guard wanted != listening else { return }
+        listening = wanted
+        RealAudioMeter.shared.setListening(self, wanted, ignoresSetting: true)
+        if !wanted { levels = [] }
+    }
+
+    func realAudioModeChanged(live: Bool) {
+        if !live { levels = [] }
+    }
+
+    func applyRealLevels(_ levels: [Double]) {
+        self.levels = levels
     }
 }
 
@@ -130,9 +171,14 @@ struct ConstellationScene: View {
             words: feed.words,
             plainText: feed.plainText,
             nowMs: { PlaybackCoordinator.shared.lyricsTimelineMs() },
-            paused: !feed.clockRunning)
+            paused: !feed.clockRunning,
+            levels: feed.levels,
+            accent: feed.accent,
+            borderEnabled: feed.borderEnabled)
             .ignoresSafeArea()
             .background(ConstellationWindowCapture())
+            .onAppear { feed.followAudio(true) }
+            .onDisappear { feed.followAudio(false) }
     }
 }
 
@@ -166,7 +212,9 @@ struct ConstellationPreviewStage: View {
             words: feed.words,
             plainText: feed.plainText,
             nowMs: { PlaybackCoordinator.shared.lyricsTimelineMs() },
-            paused: !feed.clockRunning)
+            paused: !feed.clockRunning,
+            accent: feed.accent,
+            borderEnabled: feed.borderEnabled)
             .frame(height: 220)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(

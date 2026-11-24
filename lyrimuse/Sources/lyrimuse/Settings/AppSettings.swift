@@ -481,6 +481,7 @@ final class AppSettings: ObservableObject {
         static let hasOfferedICloudImport = "np:hasOfferedICloudImport"
         static let overlayStyle = "np:overlayStyle" // 已废弃,只在 init() 里读一次做迁移
         static let classicOverlayEnabled = "np:classicOverlayEnabled"
+        static let constellationBorder = "np:constellationBorder"
         static let notchOverlayEnabled = "np:notchOverlayEnabled"
         static let notchCardStyle = "np:notchCardStyle"
         static let notchExpandedCardStyle = "np:notchExpandedCardStyle"
@@ -641,6 +642,7 @@ final class AppSettings: ObservableObject {
     /// 「圆角 / 展开圆角」默认按卡片高度算(`NotchOutline.defaultRadiusSetting`)。
     static let defaultNotchCornerRadius: Double = NotchOutline.defaultRadiusSetting
     static let defaultNotchExpandedCornerRadius: Double = NotchOutline.defaultRadiusSetting
+    static let defaultConstellationBorder = true
     static let defaultNotchAllScreens = false
     static let defaultNotchFollowsActiveScreen = false
     static let defaultNotchScreenID = ""
@@ -1741,6 +1743,11 @@ final class AppSettings: ObservableObject {
     }
     @Published var notchOverlayEnabled: Bool {
         didSet { defaults.set(notchOverlayEnabled, forKey: Keys.notchOverlayEnabled) }
+    }
+
+    /// 星座窗口的动态边框:跟着音乐起伏、颜色取自封面主色。
+    @Published var constellationBorder: Bool {
+        didSet { defaults.set(constellationBorder, forKey: Keys.constellationBorder) }
     }
     /// 每块屏都显示一个灵动岛(默认关:绝大多数人只在眼前那块屏上看)。
     @Published var notchAllScreens: Bool {
@@ -3123,6 +3130,8 @@ final class AppSettings: ObservableObject {
             .flatMap(NotchEarModule.init(rawValue:)) ?? Self.defaultNotchLeftEar
         notchRightEar = defaults.string(forKey: Keys.notchRightEar)
             .flatMap(NotchEarModule.init(rawValue:)) ?? Self.defaultNotchRightEar
+        constellationBorder = (defaults.object(forKey: Keys.constellationBorder) as? Bool)
+            ?? Self.defaultConstellationBorder
         notchAllScreens = (defaults.object(forKey: Keys.notchAllScreens) as? Bool) ?? Self.defaultNotchAllScreens
         notchFollowsActiveScreen = (defaults.object(forKey: Keys.notchFollowsActiveScreen) as? Bool)
             ?? Self.defaultNotchFollowsActiveScreen
