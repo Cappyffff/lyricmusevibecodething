@@ -3067,24 +3067,7 @@ private struct AppearanceSettingsTab: View {
             }
             .background { LastfmGlassGlow() }
         case .constellation:
-            VStack(spacing: 14) {
-                ConstellationPreviewStage()
-                SettingsCard(cornerRadius: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(L10n.t("星座"))
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(L10n.t("逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线"))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Button(L10n.t("打开星座窗口")) { AppActions.shared.openConstellation?() }
-                            .padding(.top, 2)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                }
-            }
-            .background { LastfmGlassGlow() }
+            constellationSection
         case .touchBar:
             // 编辑台:工具栏在预览上面,总开关卡和「全部设置」抽屉在预览下面,排法照歌词窗口那一段;工具栏、浮层、抽屉和三组行视图
             // 都在 UI/TouchBarSettingsRows.swift。有没有触控栏都给看预览,没有时预览下面只有一张说明卡。
@@ -4011,6 +3994,32 @@ private struct AppearanceSettingsTab: View {
     /// 集中的话要开某个形态得先退回总览、开完再切回来,来回两次。
     ///
     /// 关着的时候这一段也不会是空白 —— 这张卡本身就是内容,不需要另给"还没开启"的占位提示。
+    @ViewBuilder
+    private var constellationSection: some View {
+        VStack(spacing: 14) {
+            ConstellationPreviewStage()
+            SettingsCard(cornerRadius: 18) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.t("星座"))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(L10n.t("逐字歌词连成星座：每个词一颗星，唱到就点亮并连上一条线"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    constellationOpenButton
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+            }
+        }
+        .background { LastfmGlassGlow() }
+    }
+
+    private var constellationOpenButton: some View {
+        Button(L10n.t("打开星座窗口")) { AppActions.shared.openConstellation?() }
+            .padding(.top, 2)
+    }
+
     private func modeToggleCard(
         icon: String, title: String, subtitle: String? = nil, isOn: Binding<Bool>
     ) -> some View {

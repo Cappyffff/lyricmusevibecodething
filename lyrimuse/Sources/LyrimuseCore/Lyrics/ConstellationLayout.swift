@@ -61,8 +61,11 @@ public enum ConstellationLayout {
 
     private static func densityScale(count: Int, inner: CGRect) -> CGFloat {
         guard count > 1 else { return 1 }
-        let room = (max(inner.width * inner.height, 1) / CGFloat(count)).squareRoot() * 0.78
-        return min(max(room / minSeparation, 0.3), 1)
+        let area: CGFloat = max(inner.width * inner.height, 1)
+        let perNode: CGFloat = area / CGFloat(count)
+        let room: CGFloat = perNode.squareRoot() * 0.78
+        let ratio: CGFloat = room / minSeparation
+        return min(max(ratio, 0.3), 1)
     }
 
     private static func walk(count: Int, seed: UInt64, inner: CGRect,
@@ -73,8 +76,9 @@ public enum ConstellationLayout {
         let longest = stepRange.upperBound * scale
         var placed: [CGPoint] = []
         placed.reserveCapacity(count)
-        placed.append(CGPoint(x: inner.minX + inner.width * CGFloat(rng.double(0.22, 0.78)),
-                              y: inner.minY + inner.height * CGFloat(rng.double(0.22, 0.78))))
+        let startX: CGFloat = inner.minX + inner.width * CGFloat(rng.double(0.22, 0.78))
+        let startY: CGFloat = inner.minY + inner.height * CGFloat(rng.double(0.22, 0.78))
+        placed.append(CGPoint(x: startX, y: startY))
 
         var heading = CGFloat(rng.double(0, 2 * .pi))
         var turnSign: CGFloat = rng.unit() < 0.5 ? -1 : 1
@@ -86,10 +90,11 @@ public enum ConstellationLayout {
             for attempt in 0..<12 {
                 let turn = CGFloat(rng.double(Double(turnRange.lowerBound), Double(turnRange.upperBound)))
                 let sign = attempt.isMultiple(of: 2) ? turnSign : -turnSign
-                let candidateHeading = heading + sign * turn * .pi / 180
-                let step = CGFloat(rng.double(Double(shortest), Double(longest)))
-                let candidate = CGPoint(x: previous.x + cos(candidateHeading) * step,
-                                        y: previous.y + sin(candidateHeading) * step)
+                let candidateHeading: CGFloat = heading + sign * turn * .pi / 180
+                let step: CGFloat = CGFloat(rng.double(Double(shortest), Double(longest)))
+                let dx: CGFloat = cos(candidateHeading) * step
+                let dy: CGFloat = sin(candidateHeading) * step
+                let candidate = CGPoint(x: previous.x + dx, y: previous.y + dy)
                 guard inner.contains(candidate), clearance(of: candidate, from: placed) >= separation else { continue }
                 accepted = (candidate, candidateHeading)
                 break
@@ -130,10 +135,12 @@ public enum ConstellationLayout {
         for turnIndex in 0..<48 {
             let candidateHeading = heading + CGFloat(turnIndex) * (2 * .pi / 48)
             for step in steps {
-                let raw = CGPoint(x: previous.x + cos(candidateHeading) * step,
-                                  y: previous.y + sin(candidateHeading) * step)
-                let candidate = CGPoint(x: min(max(raw.x, inner.minX), inner.maxX),
-                                        y: min(max(raw.y, inner.minY), inner.maxY))
+                let dx: CGFloat = cos(candidateHeading) * step
+                let dy: CGFloat = sin(candidateHeading) * step
+                let rawX: CGFloat = previous.x + dx
+                let rawY: CGFloat = previous.y + dy
+                let candidate = CGPoint(x: min(max(rawX, inner.minX), inner.maxX),
+                                        y: min(max(rawY, inner.minY), inner.maxY))
                 let room = clearance(of: candidate, from: placed)
                 if let current = best, room <= current.clearance { continue }
                 best = (candidate, candidateHeading, room)
@@ -148,14 +155,17 @@ public enum ConstellationLayout {
     public static let emphasisJitter: CGFloat = 0.08
 
     public static func emphasis(durationMs: Int, index: Int, seed: UInt64) -> CGFloat {
-        let reference = Double(emphasisReferenceMs)
-        let held = max(Double(durationMs), 1) / reference
-        let byDuration = CGFloat(pow(held, 0.35))
+        let reference: Double = Double(emphasisReferenceMs)
+        let held: Double = max(Double(durationMs), 1) / reference
+        let byDuration: CGFloat = CGFloat(pow(held, 0.35))
+        let clamped: CGFloat = min(max(byDuration, emphasisRange.lowerBound), emphasisRange.upperBound)
         var rng = SeededRandom(seed: seed &+ UInt64(max(index, 0)) &* 0x9E37_79B9)
-        let jitter = 1 + CGFloat(rng.double(Double(-emphasisJitter), Double(emphasisJitter)))
-        let scaled = min(max(byDuration, emphasisRange.lowerBound), emphasisRange.upperBound) * jitter
-        return min(max(scaled, emphasisRange.lowerBound * (1 - emphasisJitter)),
-                   emphasisRange.upperBound * (1 + emphasisJitter))
+        let spread: Double = rng.double(Double(-emphasisJitter), Double(emphasisJitter))
+        let jitter: CGFloat = 1 + CGFloat(spread)
+        let scaled: CGFloat = clamped * jitter
+        let lowest: CGFloat = emphasisRange.lowerBound * (1 - emphasisJitter)
+        let highest: CGFloat = emphasisRange.upperBound * (1 + emphasisJitter)
+        return min(max(scaled, lowest), highest)
     }
 
     public static func dust(count: Int, seed: UInt64, size: CGSize) -> [ConstellationDust] {
@@ -164,10 +174,11 @@ public enum ConstellationLayout {
         var grains: [ConstellationDust] = []
         grains.reserveCapacity(count)
         for _ in 0..<count {
-            grains.append(ConstellationDust(
-                point: CGPoint(x: size.width * CGFloat(rng.unit()), y: size.height * CGFloat(rng.unit())),
-                radius: CGFloat(rng.double(0.5, 1.4)),
-                opacity: rng.double(0.08, 0.34)))
+            let x: CGFloat = size.width * CGFloat(rng.unit())
+            let y: CGFloat = size.height * CGFloat(rng.unit())
+            let radius: CGFloat = CGFloat(rng.double(0.5, 1.4))
+            grains.append(ConstellationDust(point: CGPoint(x: x, y: y), radius: radius,
+                                            opacity: rng.double(0.08, 0.34)))
         }
         return grains
     }

@@ -97,17 +97,21 @@ struct ConstellationView: View {
 
     private func drawBackdrop(in context: inout GraphicsContext, size: CGSize) {
         let rect = CGRect(origin: .zero, size: size)
-        context.fill(
-            Path(rect),
-            with: .radialGradient(
-                Gradient(colors: [ConstellationStyle.backgroundCenter, ConstellationStyle.backgroundEdge]),
-                center: CGPoint(x: size.width * 0.5, y: size.height * 0.42),
-                startRadius: 0,
-                endRadius: max(size.width, size.height) * 0.72))
+        let colors: [Color] = [ConstellationStyle.backgroundCenter, ConstellationStyle.backgroundEdge]
+        let centerX: CGFloat = size.width * 0.5
+        let centerY: CGFloat = size.height * 0.42
+        let endRadius: CGFloat = max(size.width, size.height) * 0.72
+        let shading: GraphicsContext.Shading = .radialGradient(
+            Gradient(colors: colors),
+            center: CGPoint(x: centerX, y: centerY),
+            startRadius: 0,
+            endRadius: endRadius)
+        context.fill(Path(rect), with: shading)
 
         for grain in dust.isEmpty ? Self.dustGrains(in: size) : dust {
-            let box = CGRect(x: grain.point.x - grain.radius, y: grain.point.y - grain.radius,
-                             width: grain.radius * 2, height: grain.radius * 2)
+            let radius: CGFloat = grain.radius
+            let box = CGRect(x: grain.point.x - radius, y: grain.point.y - radius,
+                             width: radius * 2, height: radius * 2)
             context.fill(Path(ellipseIn: box), with: .color(.white.opacity(grain.opacity)))
         }
     }
@@ -142,46 +146,54 @@ struct ConstellationView: View {
         guard appear > 0 else { return }
         let settle = index == active ? 0 : ease(ConstellationReveal.settleProgress(index: index, nowMs: nowMs, words: words))
 
-        let starRadius = mix(ConstellationStyle.activeStarRadius, ConstellationStyle.pastStarRadius, settle)
-            * CGFloat(appear) * emphasis
-        let fontSize = mix(ConstellationStyle.activeFontSize, ConstellationStyle.pastFontSize, settle) * emphasis
-        let textAlpha = blend(1, 0.4, settle) * appear
-        let starAlpha = blend(1, 0.55, settle) * appear
+        let grown: CGFloat = CGFloat(appear) * emphasis
+        let baseStar: CGFloat = mix(ConstellationStyle.activeStarRadius, ConstellationStyle.pastStarRadius, settle)
+        let starRadius: CGFloat = baseStar * grown
+        let baseFont: CGFloat = mix(ConstellationStyle.activeFontSize, ConstellationStyle.pastFontSize, settle)
+        let fontSize: CGFloat = baseFont * emphasis
+        let textAlpha: Double = blend(1, 0.4, settle) * appear
+        let starAlpha: Double = blend(1, 0.55, settle) * appear
 
         if settle < 1 {
-            let halo = ConstellationStyle.haloRadius * CGFloat(appear) * emphasis
+            let halo: CGFloat = ConstellationStyle.haloRadius * grown
             let box = CGRect(x: point.x - halo, y: point.y - halo, width: halo * 2, height: halo * 2)
-            context.stroke(Path(ellipseIn: box),
-                           with: .color(.white.opacity(0.34 * (1 - settle) * appear)),
-                           lineWidth: 1)
+            let haloAlpha: Double = 0.34 * (1 - settle) * appear
+            context.stroke(Path(ellipseIn: box), with: .color(.white.opacity(haloAlpha)), lineWidth: 1)
         }
 
         context.fill(starPath(center: point, radius: starRadius),
                      with: .color(.white.opacity(starAlpha)))
 
-        var resolved = context.resolve(
-            Text(verbatim: words[index].text.trimmingCharacters(in: .whitespaces))
-                .font(.system(size: fontSize, weight: index == active ? .bold : .medium)))
+        let label: String = words[index].text.trimmingCharacters(in: .whitespaces)
+        let weight: Font.Weight = index == active ? .bold : .medium
+        let font: Font = .system(size: fontSize, weight: weight)
+        var resolved = context.resolve(Text(verbatim: label).font(font))
         resolved.shading = .color(.white.opacity(textAlpha))
-        let measured = resolved.measure(in: size)
-        let above = point.y - starRadius - ConstellationStyle.labelGap
-        let anchor: UnitPoint = above - measured.height >= 0 ? .bottom : .top
-        let labelY = anchor == .bottom ? above : point.y + starRadius + ConstellationStyle.labelGap
+        let measured: CGSize = resolved.measure(in: size)
+        let above: CGFloat = point.y - starRadius - ConstellationStyle.labelGap
+        let fitsAbove: Bool = above - measured.height >= 0
+        let anchor: UnitPoint = fitsAbove ? .bottom : .top
+        let below: CGFloat = point.y + starRadius + ConstellationStyle.labelGap
+        let labelY: CGFloat = fitsAbove ? above : below
         context.draw(resolved, at: CGPoint(x: point.x, y: labelY), anchor: anchor)
     }
 
     private func starPath(center: CGPoint, radius: CGFloat) -> Path {
-        let waist = radius * ConstellationStyle.starWaist
+        let waist: CGFloat = radius * ConstellationStyle.starWaist
+        let top = CGPoint(x: center.x, y: center.y - radius)
+        let right = CGPoint(x: center.x + radius, y: center.y)
+        let bottom = CGPoint(x: center.x, y: center.y + radius)
+        let left = CGPoint(x: center.x - radius, y: center.y)
+        let topRight = CGPoint(x: center.x + waist, y: center.y - waist)
+        let bottomRight = CGPoint(x: center.x + waist, y: center.y + waist)
+        let bottomLeft = CGPoint(x: center.x - waist, y: center.y + waist)
+        let topLeft = CGPoint(x: center.x - waist, y: center.y - waist)
         var path = Path()
-        path.move(to: CGPoint(x: center.x, y: center.y - radius))
-        path.addQuadCurve(to: CGPoint(x: center.x + radius, y: center.y),
-                          control: CGPoint(x: center.x + waist, y: center.y - waist))
-        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y + radius),
-                          control: CGPoint(x: center.x + waist, y: center.y + waist))
-        path.addQuadCurve(to: CGPoint(x: center.x - radius, y: center.y),
-                          control: CGPoint(x: center.x - waist, y: center.y + waist))
-        path.addQuadCurve(to: CGPoint(x: center.x, y: center.y - radius),
-                          control: CGPoint(x: center.x - waist, y: center.y - waist))
+        path.move(to: top)
+        path.addQuadCurve(to: right, control: topRight)
+        path.addQuadCurve(to: bottom, control: bottomRight)
+        path.addQuadCurve(to: left, control: bottomLeft)
+        path.addQuadCurve(to: top, control: topLeft)
         path.closeSubpath()
         return path
     }
