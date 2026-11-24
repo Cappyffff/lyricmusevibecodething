@@ -143,6 +143,21 @@ public enum ConstellationLayout {
         return (best.point, best.heading)
     }
 
+    public static let emphasisReferenceMs = 420
+    public static let emphasisRange: ClosedRange<CGFloat> = 0.85...1.6
+    public static let emphasisJitter: CGFloat = 0.08
+
+    public static func emphasis(durationMs: Int, index: Int, seed: UInt64) -> CGFloat {
+        let reference = Double(emphasisReferenceMs)
+        let held = max(Double(durationMs), 1) / reference
+        let byDuration = CGFloat(pow(held, 0.35))
+        var rng = SeededRandom(seed: seed &+ UInt64(max(index, 0)) &* 0x9E37_79B9)
+        let jitter = 1 + CGFloat(rng.double(Double(-emphasisJitter), Double(emphasisJitter)))
+        let scaled = min(max(byDuration, emphasisRange.lowerBound), emphasisRange.upperBound) * jitter
+        return min(max(scaled, emphasisRange.lowerBound * (1 - emphasisJitter)),
+                   emphasisRange.upperBound * (1 + emphasisJitter))
+    }
+
     public static func dust(count: Int, seed: UInt64, size: CGSize) -> [ConstellationDust] {
         guard count > 0, size.width > 0, size.height > 0 else { return [] }
         var rng = SeededRandom(seed: seed &+ 0x5DEE_CE66)

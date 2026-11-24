@@ -75,6 +75,27 @@ private func checkConstellationLayout() {
     expectEqual(L.separation(count: 6, canvas: canvas), L.minSeparation,
                 "星座布点: 画布放得下时,最小间距就是 64pt")
 
+    let phraseSeed = L.seed(for: phrase)
+    expectEqual(L.emphasis(durationMs: 900, index: 3, seed: phraseSeed)
+                > L.emphasis(durationMs: 300, index: 3, seed: phraseSeed), true,
+                "星座字号: 同一个位置上,唱得久的词更大")
+    expectEqual(L.emphasis(durationMs: 1400, index: 0, seed: phraseSeed)
+                > L.emphasis(durationMs: 420, index: 0, seed: phraseSeed), true,
+                "星座字号: 长音比参考时长的词更大")
+    expectEqual(L.emphasis(durationMs: 600, index: 2, seed: phraseSeed),
+                L.emphasis(durationMs: 600, index: 2, seed: phraseSeed),
+                "星座字号: 同一个词每次算出来一样大")
+    let weights = (0..<24).map { L.emphasis(durationMs: 400, index: $0, seed: phraseSeed) }
+    expectEqual(Set(weights).count > 1, true, "星座字号: 时长一样的词之间也有抖动,不会一排整齐划一")
+    let bound = L.emphasisRange.upperBound * (1 + L.emphasisJitter)
+    let floor = L.emphasisRange.lowerBound * (1 - L.emphasisJitter)
+    let extremes = [1, 50, 420, 5000, 60_000].flatMap { duration in
+        (0..<8).map { L.emphasis(durationMs: duration, index: $0, seed: phraseSeed) }
+    }
+    expectEqual(extremes.allSatisfy { $0 >= floor && $0 <= bound }, true,
+                "星座字号: 再短再长的词也夹在倍率上下限之内")
+    expectEqual(weights.allSatisfy { $0 > 0 }, true, "星座字号: 倍率恒为正")
+
     let grains = L.dust(count: 40, seed: L.seed(for: "dust"), size: CGSize(width: 800, height: 600))
     expectEqual(grains.count, 40, "星座背景: 背景星尘按要的颗数生成")
     expectEqual(grains == L.dust(count: 40, seed: L.seed(for: "dust"), size: CGSize(width: 800, height: 600)), true,

@@ -26,6 +26,7 @@ struct ConstellationView: View {
 
     @State private var points: [CGPoint] = []
     @State private var dust: [ConstellationDust] = []
+    @State private var emphasis: [CGFloat] = []
 
     var body: some View {
         GeometryReader { proxy in
@@ -49,11 +50,20 @@ struct ConstellationView: View {
     private func layOut(in size: CGSize) {
         let made = Self.layout(lineKey: lineKey, count: words.count, size: size)
         if made != points { points = made }
-        let grains = Self.dust(in: size)
+        let grains = Self.dustGrains(in: size)
         if grains != dust { dust = grains }
+        let weights = Self.emphasisWeights(lineKey: lineKey, words: words)
+        if weights != emphasis { emphasis = weights }
     }
 
-    private static func dust(in size: CGSize) -> [ConstellationDust] {
+    private static func emphasisWeights(lineKey: String, words: [SyncedLyricWord]) -> [CGFloat] {
+        let seed = ConstellationLayout.seed(for: lineKey)
+        return words.enumerated().map { index, word in
+            ConstellationLayout.emphasis(durationMs: word.durationMs, index: index, seed: seed)
+        }
+    }
+
+    private static func dustGrains(in size: CGSize) -> [ConstellationDust] {
         ConstellationLayout.dust(count: ConstellationStyle.dustCount,
                                  seed: ConstellationLayout.seed(for: "dust"), size: size)
     }
@@ -73,13 +83,15 @@ struct ConstellationView: View {
         let points = self.points.count == words.count
             ? self.points
             : Self.layout(lineKey: lineKey, count: words.count, size: size)
+        let weights = emphasis.count == words.count ? emphasis : Self.emphasisWeights(lineKey: lineKey, words: words)
 
         let reveal = ConstellationReveal.at(nowMs: nowMs, words: words)
         guard let active = reveal.activeIndex else { return }
 
         drawEdges(in: &context, points: points, through: active, nowMs: nowMs)
         for index in 0...active {
-            drawNode(in: &context, size: size, index: index, active: active, point: points[index], nowMs: nowMs)
+            drawNode(in: &context, size: size, index: index, active: active, point: points[index],
+                     emphasis: weights[index], nowMs: nowMs)
         }
     }
 
@@ -93,7 +105,7 @@ struct ConstellationView: View {
                 startRadius: 0,
                 endRadius: max(size.width, size.height) * 0.72))
 
-        for grain in dust.isEmpty ? Self.dust(in: size) : dust {
+        for grain in dust.isEmpty ? Self.dustGrains(in: size) : dust {
             let box = CGRect(x: grain.point.x - grain.radius, y: grain.point.y - grain.radius,
                              width: grain.radius * 2, height: grain.radius * 2)
             context.fill(Path(ellipseIn: box), with: .color(.white.opacity(grain.opacity)))
@@ -125,18 +137,19 @@ struct ConstellationView: View {
     }
 
     private func drawNode(in context: inout GraphicsContext, size: CGSize, index: Int, active: Int,
-                          point: CGPoint, nowMs: Int) {
+                          point: CGPoint, emphasis: CGFloat, nowMs: Int) {
         let appear = ease(ConstellationReveal.appearProgress(index: index, nowMs: nowMs, words: words))
         guard appear > 0 else { return }
         let settle = index == active ? 0 : ease(ConstellationReveal.settleProgress(index: index, nowMs: nowMs, words: words))
 
-        let starRadius = mix(ConstellationStyle.activeStarRadius, ConstellationStyle.pastStarRadius, settle) * CGFloat(appear)
-        let fontSize = mix(ConstellationStyle.activeFontSize, ConstellationStyle.pastFontSize, settle)
+        let starRadius = mix(ConstellationStyle.activeStarRadius, ConstellationStyle.pastStarRadius, settle)
+            * CGFloat(appear) * emphasis
+        let fontSize = mix(ConstellationStyle.activeFontSize, ConstellationStyle.pastFontSize, settle) * emphasis
         let textAlpha = blend(1, 0.4, settle) * appear
         let starAlpha = blend(1, 0.55, settle) * appear
 
         if settle < 1 {
-            let halo = ConstellationStyle.haloRadius * CGFloat(appear)
+            let halo = ConstellationStyle.haloRadius * CGFloat(appear) * emphasis
             let box = CGRect(x: point.x - halo, y: point.y - halo, width: halo * 2, height: halo * 2)
             context.stroke(Path(ellipseIn: box),
                            with: .color(.white.opacity(0.34 * (1 - settle) * appear)),
